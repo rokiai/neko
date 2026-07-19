@@ -1,0 +1,75 @@
+appId: com.neko.app
+productName: Neko
+directories:
+  buildResources: build
+  output: dist
+# Desktop / installer icons (from resources/icon.png → build/icon.*)
+icon: icon.png
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!docs/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json,vitest.config.ts}'
+  - '!**/*.{map,tsbuildinfo}'
+  - '!**/.eslintcache'
+  - '!.github/*'
+  - '!.husky/*'
+  # Renderer-only deps are already bundled into out/renderer — keep them out of asar
+  - '!**/node_modules/antd/**'
+  - '!**/node_modules/@ant-design/**'
+  - '!**/node_modules/react/**'
+  - '!**/node_modules/react-dom/**'
+  - '!**/node_modules/react-i18next/**'
+  - '!**/node_modules/howler/**'
+  - '!**/node_modules/dayjs/**'
+  - '!**/node_modules/@rc-component/**'
+  - '!**/node_modules/rc-*/**'
+  - '!**/node_modules/csstype/**'
+asarUnpack:
+  - 'resources/**'
+win:
+  executableName: Neko
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  artifactName: ${productName}-${version}-setup.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+mac:
+  category: public.app-category.productivity
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    LSUIElement: 1
+  notarize: false
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Utility
+  maintainer: neko.app
+appImage:
+  artifactName: ${productName}-${version}.${ext}
+npmRebuild: false
+publish:
+  provider: github
+  owner: rokiai
+  repo: neko

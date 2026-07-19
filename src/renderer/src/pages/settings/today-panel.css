@@ -1,0 +1,167 @@
+.today-panel {
+  grid-area: today;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
+
+.today-card {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 22px;
+  box-shadow: var(--neko-shadow-soft);
+  backdrop-filter: blur(18px) saturate(1.1);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  padding: 14px 14px 12px;
+  flex: 0 0 auto;
+}
+
+.today-card-head {
+  padding-bottom: 8px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid rgba(74, 120, 96, 0.1);
+}
+
+.today-card-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--neko-text);
+}
+
+.today-card-head p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--neko-muted);
+  line-height: 1.35;
+}
+
+.today-rows {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0 4px;
+  display: grid;
+  gap: 10px;
+}
+
+.today-rows li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--neko-muted);
+}
+
+.today-rows strong {
+  color: var(--neko-text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.today-stars {
+  display: inline-flex;
+  gap: 1px;
+  font-size: 12px;
+  color: rgba(74, 120, 96, 0.22);
+  line-height: 1;
+}
+
+.today-stars .is-on {
+  color: var(--neko-accent);
+}
+
+.today-progress {
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin: 10px auto 12px;
+  width: 132px;
+  height: 132px;
+}
+
+.today-ring {
+  transform: rotate(-90deg);
+}
+
+.today-ring-track {
+  stroke: rgba(63, 159, 126, 0.12);
+}
+
+.today-ring-value {
+  stroke: var(--neko-accent);
+  transition: stroke-dashoffset 320ms ease;
+}
+
+.today-progress-copy {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 2px;
+}
+
+.today-progress-copy span,
+.today-progress-copy em {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--neko-muted);
+  font-style: normal;
+}
+
+.today-progress-copy strong {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--neko-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.today-tip {
+  margin-top: 2px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background:
+    radial-gradient(72px 40px at 92% 20%, rgba(63, 159, 126, 0.16), transparent 70%),
+    rgba(63, 159, 126, 0.1);
+  color: var(--neko-muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.today-countdown {
+  text-align: center;
+}
+
+.today-countdown .today-card-head {
+  text-align: left;
+}
+
+.today-countdown-value {
+  margin: 12px 0 6px;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--neko-accent-strong);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.today-countdown-meta {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--neko-muted);
+}

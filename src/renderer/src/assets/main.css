@@ -1,0 +1,123 @@
+:root {
+  color-scheme: light;
+  --neko-bg: #eef6f1;
+  --neko-panel: rgba(255, 255, 255, 0.78);
+  --neko-panel-solid: #ffffff;
+  --neko-line: rgba(74, 120, 96, 0.12);
+  --neko-text: #24352c;
+  --neko-muted: #5f7468;
+  --neko-accent: #3f9f7e;
+  --neko-accent-soft: rgba(63, 159, 126, 0.14);
+  --neko-accent-strong: #2f8668;
+  --neko-shadow: 0 14px 40px rgba(55, 96, 78, 0.1);
+  --neko-shadow-soft: 0 8px 24px rgba(55, 96, 78, 0.07);
+  --neko-serif: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --neko-sans: 'Nunito', 'Noto Sans SC', 'Segoe UI', sans-serif;
+  --neko-radius: 22px;
+  --neko-scroll-size: 8px;
+  --neko-scroll-thumb: rgba(63, 159, 126, 0.28);
+  --neko-scroll-thumb-hover: rgba(63, 159, 126, 0.46);
+  --neko-scroll-thumb-active: rgba(47, 134, 104, 0.58);
+  --neko-scroll-track: transparent;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--neko-sans);
+  color: var(--neko-text);
+  -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(900px 520px at 8% 0%, rgba(168, 220, 190, 0.55), transparent 58%),
+    radial-gradient(820px 480px at 100% 8%, rgba(186, 222, 240, 0.45), transparent 52%),
+    radial-gradient(700px 420px at 70% 100%, rgba(255, 214, 170, 0.28), transparent 48%),
+    linear-gradient(165deg, #f7fbf8 0%, #eef6f1 48%, #e8f3ec 100%);
+}
+
+/* Keep Ant App / ConfigProvider from growing past the Electron window. */
+#root > *,
+.ant-app {
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+body,
+.settings-shell {
+  user-select: none;
+}
+
+button,
+input,
+textarea,
+.ant-btn,
+.ant-switch,
+.ant-picker,
+.ant-select,
+.ant-input,
+.ant-input-number,
+.ant-slider {
+  user-select: auto;
+  pointer-events: auto;
+}
+
+/* ── Custom scrollbar (Chromium / Electron on all platforms + Firefox) ── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--neko-scroll-thumb) var(--neko-scroll-track);
+}
+
+*::-webkit-scrollbar {
+  width: var(--neko-scroll-size);
+  height: var(--neko-scroll-size);
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--neko-scroll-track);
+  border-radius: 999px;
+  margin: 4px 0;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--neko-scroll-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  min-height: 32px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--neko-scroll-thumb-hover);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: var(--neko-scroll-thumb-active);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}

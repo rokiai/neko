@@ -1,0 +1,303 @@
+.break-root {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: var(--neko-sans);
+  color: var(--break-fg, #f7f3ee);
+  background: transparent;
+}
+
+/* Break windows must stay see-through so backdrop opacity reaches the desktop. */
+html:has(.break-root),
+html:has(.break-root) body,
+html:has(.break-root) #root,
+html:has(.break-root) .ant-app {
+  background: transparent !important;
+  overflow: hidden;
+}
+
+.break-root.phase-closing {
+  animation: break-fade-out 420ms ease forwards;
+}
+
+.break-toast {
+  position: relative;
+  margin: 0 auto;
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  border-radius: 18px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--break-bg, #3f9f7e) 92%, black);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+}
+
+.break-toast-progress {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  transform-origin: left center;
+  background: color-mix(in srgb, var(--break-fg, white) 16%, transparent);
+  pointer-events: none;
+}
+
+.break-toast-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 100%;
+  padding: 0 18px 0 22px;
+}
+
+.break-toast-title {
+  font-family: var(--neko-serif);
+  font-size: 18px;
+  font-weight: 560;
+  letter-spacing: -0.02em;
+}
+
+.break-toast-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  opacity: 0.72;
+}
+
+.break-toast-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.break-btn {
+  border: 1px solid color-mix(in srgb, var(--break-fg, white) 28%, transparent);
+  background: color-mix(in srgb, var(--break-fg, white) 8%, transparent);
+  color: inherit;
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.break-btn:hover {
+  background: color-mix(in srgb, var(--break-fg, white) 16%, transparent);
+  transform: translateY(-1px);
+}
+
+.break-btn.primary {
+  background: var(--break-fg, white);
+  color: var(--break-bg, #3f9f7e);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.break-btn.ghost {
+  margin-top: 8px;
+  background: transparent;
+  color: inherit;
+}
+
+.break-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.break-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 12, 10, var(--break-backdrop-alpha, 0.72));
+  backdrop-filter: blur(10px);
+  transition: background 160ms ease;
+}
+
+.break-card {
+  position: relative;
+  z-index: 1;
+  width: min(460px, calc(100% - 48px));
+  padding: 36px 32px 28px;
+  border-radius: 28px;
+  background: color-mix(in srgb, var(--break-bg, #3f9f7e) 94%, black);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+  text-align: center;
+  animation: break-rise 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.break-end-quiet {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 2;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0.38;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    opacity 160ms ease,
+    background 160ms ease;
+}
+
+.break-end-quiet:hover {
+  opacity: 0.78;
+  background: color-mix(in srgb, var(--break-fg, white) 10%, transparent);
+}
+
+.break-kicker {
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.break-card h1 {
+  margin: 0;
+  font-family: var(--neko-serif);
+  font-size: 34px;
+  font-weight: 560;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.break-message {
+  margin: 14px 0 0;
+  white-space: pre-line;
+  opacity: 0.86;
+  line-height: 1.55;
+  font-size: 15px;
+}
+
+.break-meter {
+  margin-top: 28px;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--break-fg, white) 16%, transparent);
+  overflow: hidden;
+}
+
+.break-meter-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--break-fg, white);
+  transition: width 80ms linear;
+}
+
+.break-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  opacity: 0.72;
+}
+
+@keyframes break-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes break-fade-out {
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+.break-stage.is-video {
+  place-items: stretch;
+  background: #050807;
+}
+
+.break-video-wash {
+  position: absolute;
+  inset: 0;
+  background: #050807;
+}
+
+.break-video {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #050807;
+}
+
+.break-video-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(5, 8, 7, 0.35) 0%,
+      transparent 28%,
+      transparent 55%,
+      rgba(5, 8, 7, 0.72) 100%
+    ),
+    radial-gradient(120% 70% at 50% 100%, rgba(5, 8, 7, 0.55), transparent 55%);
+  pointer-events: none;
+}
+
+.break-video-chrome {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  width: min(560px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 28px 0 40px;
+  text-align: left;
+  color: #f7f3ee;
+  animation: break-rise 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.break-video-chrome .break-end-quiet {
+  position: absolute;
+  top: 18px;
+  right: 0;
+  color: #f7f3ee;
+}
+
+.break-video-copy h1 {
+  margin: 0;
+  font-family: var(--neko-serif);
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 560;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  text-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.break-video-chrome .break-meter {
+  margin-top: 22px;
+  background: rgba(247, 243, 238, 0.18);
+}
+
+.break-video-chrome .break-meter-fill {
+  background: #f7f3ee;
+}
+
+.break-video-chrome .break-meta {
+  color: rgba(247, 243, 238, 0.78);
+}

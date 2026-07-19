@@ -1,0 +1,14 @@
+node_modules
+dist
+out
+.DS_Store
+.eslintcache
+*.log*
+coverage
+*.tsbuildinfo
+.idea
+package-lock.json
+yarn.lock
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json

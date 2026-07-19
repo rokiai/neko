@@ -1,0 +1,36 @@
+# Changelog
+
+All notable changes to Neko are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.1.0] — 2026-07-19
+
+### Added
+
+- Cross-platform Electron desktop app (macOS / Windows / Linux)
+- Break scheduler with configurable frequency and length
+- Full-screen message-card and video break styles, plus system notifications
+- Working hours (per weekday ranges) and Smart Breaks (idle / lock reset)
+- Settings UI: Breaks, Hours, Appearance, System — with today’s status panel
+- Break preview from Appearance without affecting stats
+- Built-in calm break video and custom video import
+- Sounds (optional; default muted), appearance colors / overlay opacity
+- System tray with cup template icon; optional macOS menu-bar timer
+- Locales: Chinese, English, Japanese (system default)
+- Auto-update via `electron-updater` + GitHub Releases
+- CI quality gates and multi-platform release workflow
+
+### Packaging
+
+- Separate macOS `arm64` / `x64` installers (not universal)
+- Smaller asar by excluding renderer-only dependencies already bundled by Vite
+- App icon from branded kitten artwork (transparent PNG → icns / ico)
+
+### License
+
+- PolyForm Noncommercial License 1.0.0  
+  Required Notice: Copyright (c) 2026 MultCat Authors
+
+[0.1.0]: https://github.com/rokiai/neko/releases/tag/v0.1.0
