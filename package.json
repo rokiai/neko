@@ -26,6 +26,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "ci": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
+    "sync:readme": "node scripts/sync-readme-download-links.mjs",
+    "sync:readme:check": "node scripts/sync-readme-download-links.mjs --check",
+    "version": "pnpm sync:readme && git add README.md README.zh-CN.md",
     "postinstall": "electron-builder install-app-deps",
     "prepare": "husky"
   },

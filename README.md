@@ -11,9 +11,30 @@
 
 <p align="center">
   <a href="./README.zh-CN.md">中文</a> ·
+  <a href="https://github.com/rokiai/neko/releases/latest">Download</a> ·
   <a href="https://github.com/rokiai/neko/releases">Releases</a> ·
   <a href="./CHANGELOG.md">Changelog</a>
 </p>
+
+<!-- DOWNLOAD_LINKS:START -->
+
+## Download
+
+**Current release: [v0.1.0](https://github.com/rokiai/neko/releases/latest)**
+
+| Platform                  | Installer                                                                                            |
+| ------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **macOS (Apple Silicon)** | [Neko-0.1.0-arm64.dmg](https://github.com/rokiai/neko/releases/download/v0.1.0/Neko-0.1.0-arm64.dmg) |
+| **macOS (Intel)**         | [Neko-0.1.0-x64.dmg](https://github.com/rokiai/neko/releases/download/v0.1.0/Neko-0.1.0-x64.dmg)     |
+| **Windows**               | [Neko-0.1.0-setup.exe](https://github.com/rokiai/neko/releases/download/v0.1.0/Neko-0.1.0-setup.exe) |
+| **Linux (AppImage)**      | [Neko-0.1.0.AppImage](https://github.com/rokiai/neko/releases/download/v0.1.0/Neko-0.1.0.AppImage)   |
+| **Linux (deb)**           | [neko_0.1.0_amd64.deb](https://github.com/rokiai/neko/releases/download/v0.1.0/neko_0.1.0_amd64.deb) |
+
+All releases: [https://github.com/rokiai/neko/releases/latest](https://github.com/rokiai/neko/releases/latest)
+
+> Links are generated from `package.json` version via `pnpm sync:readme`. Re-run after bumping the version (also runs on `pnpm version`).
+
+<!-- DOWNLOAD_LINKS:END -->
 
 Elegant cross-platform desktop break reminders, built with [electron-vite](https://electron-vite.org/) + React + TypeScript + Ant Design.
 
@@ -48,25 +69,19 @@ Repo: [rokiai/neko](https://github.com/rokiai/neko)
 
 ## Install guide (recommended)
 
-Download a prebuilt installer from GitHub Releases — no local build required.
+Use the [Download](#download) links above for the current installers (no local build required).
 
-1. Open [Releases](https://github.com/rokiai/neko/releases)
-2. Under the latest release **Assets**, pick your platform:
-
-| OS          | File                                                                   | How to install                                           |
-| ----------- | ---------------------------------------------------------------------- | -------------------------------------------------------- |
-| **macOS**   | `Neko-x.y.z-arm64.dmg` (Apple Silicon) or `Neko-x.y.z-x64.dmg` (Intel) | Open the DMG and drag Neko into Applications             |
-| **Windows** | `Neko-x.y.z-setup.exe`                                                 | Run the setup wizard                                     |
-| **Linux**   | `Neko-x.y.z.AppImage` or `.deb`                                        | AppImage: `chmod +x` then run; deb: `sudo dpkg -i *.deb` |
-
-3. **macOS “unidentified developer”**  
-   System Settings → Privacy & Security → Open Anyway; or:
+1. Pick your platform file and install:
+   - **macOS**: open the DMG and drag Neko into Applications
+   - **Windows**: run the setup wizard
+   - **Linux AppImage**: `chmod +x` then run; **deb**: `sudo dpkg -i *.deb`
+2. **macOS “unidentified developer”** — System Settings → Privacy & Security → Open Anyway; or:
 
    ```bash
    xattr -cr /Applications/Neko.app
    ```
 
-4. After launch, Neko lives in the menu bar / tray. Closing the settings window does **not** quit the app — click the tray icon to reopen. Use **Quit** in the tray menu to exit fully.
+3. After launch, Neko lives in the menu bar / tray. Closing the settings window does **not** quit the app — click the tray icon to reopen. Use **Quit** in the tray menu to exit fully.
 
 ## Build installers for three platforms with GitHub Actions
 
@@ -75,11 +90,12 @@ Download a prebuilt installer from GitHub Releases — no local build required.
 **Option A — tag release**
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+# bump version (also refreshes README download links)
+pnpm version patch   # or minor / major / 0.2.0
+git push origin main --follow-tags
 ```
 
-Pushing a `v*` tag builds all platforms and opens a **draft** GitHub Release.
+Pushing a `v*` tag builds all platforms and opens a **draft** GitHub Release. If you tag manually, run `pnpm sync:readme` after changing `package.json` version.
 
 **Option B — manual run**
 

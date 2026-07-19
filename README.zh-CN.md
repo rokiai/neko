@@ -11,9 +11,30 @@
 
 <p align="center">
   <a href="./README.md">English</a> ·
+  <a href="https://github.com/rokiai/neko/releases/latest">下载</a> ·
   <a href="https://github.com/rokiai/neko/releases">Releases</a> ·
   <a href="./CHANGELOG.md">Changelog</a>
 </p>
+
+<!-- DOWNLOAD_LINKS:START -->
+
+## 下载安装包
+
+**当前版本：[v0.1.0](https://github.com/rokiai/neko/releases/latest)**
+
+| 平台                       | 安装包                                                                                               |
+| -------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **macOS（Apple Silicon）** | [Neko-0.1.0-arm64.dmg](https://github.com/rokiai/neko/releases/download/v0.1.0/Neko-0.1.0-arm64.dmg) |
+| **macOS（Intel）**         | [Neko-0.1.0-x64.dmg](https://github.com/rokiai/neko/releases/download/v0.1.0/Neko-0.1.0-x64.dmg)     |
+| **Windows**                | [Neko-0.1.0-setup.exe](https://github.com/rokiai/neko/releases/download/v0.1.0/Neko-0.1.0-setup.exe) |
+| **Linux（AppImage）**      | [Neko-0.1.0.AppImage](https://github.com/rokiai/neko/releases/download/v0.1.0/Neko-0.1.0.AppImage)   |
+| **Linux（deb）**           | [neko_0.1.0_amd64.deb](https://github.com/rokiai/neko/releases/download/v0.1.0/neko_0.1.0_amd64.deb) |
+
+全部版本：[https://github.com/rokiai/neko/releases/latest](https://github.com/rokiai/neko/releases/latest)
+
+> 下载链接由 `package.json` 版本生成，改版本后执行 `pnpm sync:readme`（`pnpm version` 时也会自动跑）。
+
+<!-- DOWNLOAD_LINKS:END -->
 
 优雅的跨平台桌面休息提醒，基于 [electron-vite](https://electron-vite.org/) + React + TypeScript + Ant Design。
 
@@ -48,25 +69,19 @@
 
 ## 安装教程（推荐）
 
-从 GitHub Releases 下载对应系统的安装包，无需自己编译。
+直接使用上方 [下载安装包](#下载安装包) 的链接即可，无需本地编译。
 
-1. 打开 [Releases](https://github.com/rokiai/neko/releases)
-2. 在最新版本的 **Assets** 里按系统选择文件：
-
-| 系统        | 下载文件                                                                | 安装方式                                                |
-| ----------- | ----------------------------------------------------------------------- | ------------------------------------------------------- |
-| **macOS**   | `Neko-x.y.z-arm64.dmg`（Apple Silicon）或 `Neko-x.y.z-x64.dmg`（Intel） | 打开 DMG，将 Neko 拖到「应用程序」                      |
-| **Windows** | `Neko-x.y.z-setup.exe`                                                  | 双击安装向导，按提示完成                                |
-| **Linux**   | `Neko-x.y.z.AppImage` 或 `.deb`                                         | AppImage：赋予执行权限后运行；deb：`sudo dpkg -i *.deb` |
-
-3. **macOS 提示「无法验证开发者」时**  
-   系统设置 → 隐私与安全性 → 仍要打开；或在终端执行：
+1. 按系统选择文件并安装：
+   - **macOS**：打开 DMG，将 Neko 拖到「应用程序」
+   - **Windows**：运行安装向导
+   - **Linux AppImage**：`chmod +x` 后运行；**deb**：`sudo dpkg -i *.deb`
+2. **macOS 提示「无法验证开发者」时** — 系统设置 → 隐私与安全性 → 仍要打开；或：
 
    ```bash
    xattr -cr /Applications/Neko.app
    ```
 
-4. 启动后，菜单栏 / 托盘会出现 Neko；关闭设置窗口不会退出，点托盘图标可再打开。彻底退出请用托盘菜单里的「退出」。
+3. 启动后，菜单栏 / 托盘会出现 Neko；关闭设置窗口不会退出，点托盘图标可再打开。彻底退出请用托盘菜单里的「退出」。
 
 ## 用 GitHub Actions 打包三个系统
 
@@ -75,11 +90,12 @@
 **方式 A：打 tag 发版（正式）**
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+# 升版本（同时刷新 README 下载链接）
+pnpm version patch   # 或 minor / major / 0.2.0
+git push origin main --follow-tags
 ```
 
-推送 `v*` tag 后自动构建，并创建 **draft** GitHub Release（需在网页上确认发布）。
+推送 `v*` tag 后自动构建，并创建 **draft** GitHub Release。若手动打 tag，请在改完 `package.json` 版本后执行 `pnpm sync:readme`。
 
 **方式 B：手动跑一次（可只构建不发布）**
 
