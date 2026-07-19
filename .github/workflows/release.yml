@@ -67,17 +67,19 @@ jobs:
 
       - name: Build app (macOS)
         if: matrix.platform == 'mac'
-        run: pnpm run build:mac
+        # Use --publish=never (equals form). Space-separated "never" is not always
+        # applied; on tags electron-builder then tries GitHub publish without GH_TOKEN.
+        run: pnpm run build && pnpm exec electron-builder --mac --publish=never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Build app (Windows)
         if: matrix.platform == 'win'
-        run: pnpm run build:win
+        run: pnpm run build && pnpm exec electron-builder --win --publish=never
 
       - name: Build app (Linux)
         if: matrix.platform == 'linux'
-        run: pnpm run build:linux
+        run: pnpm run build && pnpm exec electron-builder --linux --publish=never
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
