@@ -18,12 +18,23 @@ const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const args = process.argv.slice(2)
 const checkOnly = args.includes('--check')
 const versionFlag = args.indexOf('--version')
-const versionRaw =
-  (versionFlag >= 0 ? args[versionFlag + 1] : null) ||
-  process.env.NEKO_VERSION ||
-  process.env.GITHUB_REF_NAME ||
-  pkg.version
 
+function resolveVersion() {
+  if (versionFlag >= 0 && args[versionFlag + 1]) {
+    return String(args[versionFlag + 1])
+  }
+  if (process.env.NEKO_VERSION) {
+    return String(process.env.NEKO_VERSION)
+  }
+  // On tag workflows GITHUB_REF_NAME is e.g. v0.1.0; ignore branch names like "main".
+  const refName = process.env.GITHUB_REF_NAME
+  if (refName && /^v?\d+\.\d+\.\d+/.test(refName)) {
+    return refName
+  }
+  return pkg.version
+}
+
+const versionRaw = resolveVersion()
 const version = String(versionRaw).replace(/^v/, '')
 const tag = `v${version}`
 const base = `https://github.com/rokiai/neko/releases/download/${tag}`
@@ -105,13 +116,25 @@ function upsert(path, block) {
 }
 
 const targets = [
-  upsert(join(root, 'README.md'), blockEn()),
-  upsert(join(root, 'README.zh-CN.md'), blockZh())
+  { path: join(root, 'README.md'), block: blockEn() },
+  { path: join(root, 'README.zh-CN.md'), block: blockZh() }
 ]
 
+const requiredUrls = Object.values(assets)
+
 if (checkOnly) {
-  const dirty = targets.filter((t) => t.changed)
-  if (dirty.length) {
+  let failed = false
+  for (const { path } of targets) {
+    const text = readFileSync(path, 'utf8')
+    const missing = requiredUrls.filter((url) => !text.includes(url))
+    if (!text.includes(tag)) missing.push(`version marker ${tag}`)
+    if (missing.length) {
+      failed = true
+      console.error(`${path} missing for ${tag}:`)
+      for (const m of missing) console.error(`  - ${m}`)
+    }
+  }
+  if (failed) {
     console.error(`README download links are out of date for ${tag}. Run: pnpm sync:readme`)
     process.exit(1)
   }
@@ -119,8 +142,9 @@ if (checkOnly) {
   process.exit(0)
 }
 
-for (const t of targets) {
-  writeFileSync(t.path, t.next)
-  console.log(`${t.changed ? 'updated' : 'unchanged'} ${t.path}`)
+for (const { path, block } of targets) {
+  const result = upsert(path, block)
+  writeFileSync(path, result.next)
+  console.log(`${result.changed ? 'updated' : 'unchanged'} ${path}`)
 }
 console.log(`synced download links → ${tag}`)
