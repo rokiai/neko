@@ -95,7 +95,7 @@ pnpm version patch   # or minor / major / 0.2.0
 git push origin main --follow-tags
 ```
 
-Pushing a `v*` tag builds all platforms and opens a **draft** GitHub Release. If you tag manually, run `pnpm sync:readme` after changing `package.json` version.
+Pushing a `v*` tag builds all platforms and publishes a GitHub Release. If you tag manually, run `pnpm sync:readme` after changing `package.json` version.
 
 **Option B — manual run**
 

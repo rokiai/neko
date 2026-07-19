@@ -95,7 +95,7 @@ pnpm version patch   # 或 minor / major / 0.2.0
 git push origin main --follow-tags
 ```
 
-推送 `v*` tag 后自动构建，并创建 **draft** GitHub Release。若手动打 tag，请在改完 `package.json` 版本后执行 `pnpm sync:readme`。
+推送 `v*` tag 后自动构建，并创建 GitHub Release。若手动打 tag，请在改完 `package.json` 版本后执行 `pnpm sync:readme`。
 
 **方式 B：手动跑一次（可只构建不发布）**
 
