@@ -36,6 +36,58 @@
 
 <!-- DOWNLOAD_LINKS:END -->
 
+## 安装教程
+
+当前安装包**尚未做 Apple 开发者签名 / 公证**，从网上下载后 macOS 可能会拦截，按下面步骤即可。
+
+### macOS
+
+1. 按芯片下载对应 DMG（Apple Silicon 用 `arm64`，Intel 用 `x64`）。
+2. 打开 DMG，把 **Neko** 拖进「应用程序」。
+3. 从「应用程序」启动 Neko。
+
+#### 若提示「已损坏，无法打开」
+
+这是系统的**隔离（quarantine）拦截**，不是安装包坏了。这种情况在「系统设置 → 隐私与安全性」里**不会出现「仍要打开」**。
+
+在「终端」执行：
+
+```bash
+xattr -cr /Applications/Neko.app
+open /Applications/Neko.app
+```
+
+启动后请看**菜单栏右侧**的茶杯图标（Neko 是菜单栏应用，**Dock 里通常没有图标**）。
+
+#### 若提示「无法验证开发者」
+
+可以任选其一：
+
+- 右键 App →「打开」→ 再点「打开」；或
+- 关掉提示后约一小时内：系统设置 → 隐私与安全性 → 安全性 →「仍要打开」。
+
+上面的 `xattr` 命令对这种提示同样有效。
+
+### Windows
+
+1. 下载并运行 `Neko-*-setup.exe`。
+2. 若出现 SmartScreen「Windows 已保护你的电脑」（未签名安装包常见）：
+   - 点「更多信息」→「仍要运行」。
+3. 从开始菜单 / 桌面快捷方式启动；图标在**系统托盘**。
+
+Windows **没有** macOS 那种「应用已损坏」的隔离提示，未签名时一般是 SmartScreen。
+
+### Linux
+
+1. **AppImage**：`chmod +x Neko-*.AppImage && ./Neko-*.AppImage`
+2. **deb**：`sudo dpkg -i neko_*_amd64.deb`（缺依赖时再执行 `sudo apt -f install`）
+
+Linux 一般**不会像 macOS Gatekeeper 那样**拦未签名桌面应用；AppImage 需要可执行权限，deb 需要安装权限即可。
+
+### 安装后（各平台）
+
+关闭设置窗口不会退出；托盘 / 菜单栏图标点开可再进设置。彻底退出请用托盘菜单里的「退出」。
+
 优雅的跨平台桌面休息提醒，基于 [electron-vite](https://electron-vite.org/) + React + TypeScript + Ant Design。
 
 仓库：[rokiai/neko](https://github.com/rokiai/neko)
@@ -66,22 +118,6 @@
 - 系统托盘（macOS 菜单栏图标；可选菜单栏计时）
 - 音效、外观、登录自启、自动更新检查
 - 多语言：中文 / English / 日本語（默认跟随系统）
-
-## 安装教程（推荐）
-
-直接使用上方 [下载安装包](#下载安装包) 的链接即可，无需本地编译。
-
-1. 按系统选择文件并安装：
-   - **macOS**：打开 DMG，将 Neko 拖到「应用程序」
-   - **Windows**：运行安装向导
-   - **Linux AppImage**：`chmod +x` 后运行；**deb**：`sudo dpkg -i *.deb`
-2. **macOS 提示「无法验证开发者」时** — 系统设置 → 隐私与安全性 → 仍要打开；或：
-
-   ```bash
-   xattr -cr /Applications/Neko.app
-   ```
-
-3. 启动后，菜单栏 / 托盘会出现 Neko；关闭设置窗口不会退出，点托盘图标可再打开。彻底退出请用托盘菜单里的「退出」。
 
 ## 用 GitHub Actions 打包三个系统
 

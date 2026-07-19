@@ -36,6 +36,58 @@ All releases: [https://github.com/rokiai/neko/releases/latest](https://github.co
 
 <!-- DOWNLOAD_LINKS:END -->
 
+## Install guide
+
+Neko is **not notarized with an Apple Developer ID** yet. That is normal for this release; follow the steps below.
+
+### macOS
+
+1. Download the matching DMG (`arm64` for Apple Silicon, `x64` for Intel).
+2. Open the DMG and drag **Neko** into **Applications**.
+3. Open **Neko** from Applications.
+
+#### If macOS says the app is damaged (“已损坏，无法打开”)
+
+This is **Gatekeeper quarantine**, not a corrupt download. System Settings will **not** show **Open Anyway** for this message.
+
+In Terminal:
+
+```bash
+xattr -cr /Applications/Neko.app
+open /Applications/Neko.app
+```
+
+Then look for the cup icon in the **menu bar** (Neko is a menu-bar app and often has **no Dock icon**).
+
+#### If macOS says the developer cannot be verified (“无法验证开发者”)
+
+You may either:
+
+- Right-click the app → **Open** → **Open**, or
+- Dismiss the dialog, then within about an hour: **System Settings → Privacy & Security → Security → Open Anyway**.
+
+The Terminal `xattr` command above also works for this case.
+
+### Windows
+
+1. Download `Neko-*-setup.exe` and run the installer.
+2. If **SmartScreen** shows “Windows protected your PC” (unsigned installer):
+   - Click **More info** → **Run anyway**.
+3. Launch Neko from the Start menu / desktop shortcut; it appears in the **system tray**.
+
+Windows does **not** use the macOS-style “app is damaged” quarantine message. SmartScreen is the usual prompt for unsigned builds.
+
+### Linux
+
+1. **AppImage**: `chmod +x Neko-*.AppImage && ./Neko-*.AppImage`
+2. **deb**: `sudo dpkg -i neko_*_amd64.deb` (fix deps with `sudo apt -f install` if needed)
+
+Linux generally does **not** block unsigned desktop apps the way macOS Gatekeeper does. You mainly need execute permission (AppImage) or package install rights (deb).
+
+### After install (all platforms)
+
+Closing the settings window does **not** quit Neko — use the tray / menu-bar icon. Choose **Quit** in the tray menu to exit fully.
+
 Elegant cross-platform desktop break reminders, built with [electron-vite](https://electron-vite.org/) + React + TypeScript + Ant Design.
 
 Repo: [rokiai/neko](https://github.com/rokiai/neko)
@@ -66,22 +118,6 @@ Repo: [rokiai/neko](https://github.com/rokiai/neko)
 - System tray (macOS menu-bar icon; optional menu-bar timer)
 - Sounds, appearance, launch at login, update checks
 - Locales: Chinese / English / Japanese (follows system by default)
-
-## Install guide (recommended)
-
-Use the [Download](#download) links above for the current installers (no local build required).
-
-1. Pick your platform file and install:
-   - **macOS**: open the DMG and drag Neko into Applications
-   - **Windows**: run the setup wizard
-   - **Linux AppImage**: `chmod +x` then run; **deb**: `sudo dpkg -i *.deb`
-2. **macOS “unidentified developer”** — System Settings → Privacy & Security → Open Anyway; or:
-
-   ```bash
-   xattr -cr /Applications/Neko.app
-   ```
-
-3. After launch, Neko lives in the menu bar / tray. Closing the settings window does **not** quit the app — click the tray icon to reopen. Use **Quit** in the tray menu to exit fully.
 
 ## Build installers for three platforms with GitHub Actions
 
