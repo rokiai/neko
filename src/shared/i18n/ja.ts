@@ -175,5 +175,12 @@ export const ja: Messages = {
   'notify.updateAvailableBody':
     'Neko {{version}} の準備ができました。GitHub Releases からダウンロードしてください。',
   'notify.updateReady': 'アップデート準備完了',
-  'notify.updateReadyBody': '終了時にアップデートをインストールします。'
+  'notify.updateReadyBody': '終了時にアップデートをインストールします。',
+
+  'update.dialogTitle': 'アップデートがあります',
+  'update.dialogMessage': 'Neko {{version}} が利用可能です',
+  'update.dialogDetail':
+    '自動アップデートを完了できませんでした。ダウンロードページから最新版をインストールしてください。',
+  'update.dialogDownload': 'ダウンロードへ',
+  'update.dialogLater': 'あとで'
 }

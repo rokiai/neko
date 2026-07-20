@@ -173,5 +173,11 @@ export const zh: Messages = {
   'notify.updateAvailable': '发现新版本',
   'notify.updateAvailableBody': 'Neko {{version}} 已就绪，请前往 GitHub Releases 下载。',
   'notify.updateReady': '更新已就绪',
-  'notify.updateReadyBody': '退出应用后将安装更新。'
+  'notify.updateReadyBody': '退出应用后将安装更新。',
+
+  'update.dialogTitle': '发现新版本',
+  'update.dialogMessage': 'Neko {{version}} 可用',
+  'update.dialogDetail': '自动更新未能完成，请前往下载页安装最新版本。',
+  'update.dialogDownload': '前往下载',
+  'update.dialogLater': '稍后'
 }

@@ -32,6 +32,7 @@ const neko: NekoApi = {
   getTimeSinceLastBreak: () => ipcRenderer.invoke(IpcChannel.TimeSinceLastBreakGet),
   wasStartedFromTray: () => ipcRenderer.invoke(IpcChannel.WasStartedFromTrayGet),
   getRuntimeStatus: () => ipcRenderer.invoke(IpcChannel.RuntimeStatusGet),
+  getAppVersion: () => ipcRenderer.invoke(IpcChannel.AppVersionGet),
   playStartSound: (type: SoundType, volume?: number) =>
     ipcRenderer.invoke(IpcChannel.SoundStartPlay, type, volume),
   playEndSound: (type: SoundType, volume?: number) =>
