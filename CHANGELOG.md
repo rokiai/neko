@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Default working hours cover the full day (`00:00`–`23:59`); narrow ranges remain configurable in Settings
 - Working-hours time inputs use hour / minute selects instead of Ant Design `TimePicker`
 - Upgrade Electron to 43
-- GitHub Releases are created as drafts again for manual review before publish
+- GitHub Releases publish publicly when the release tag is pushed
 
 ### Fixed
 
