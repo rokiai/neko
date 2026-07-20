@@ -175,7 +175,14 @@ export const en = {
   'notify.updateAvailable': 'Update available',
   'notify.updateAvailableBody': 'Neko {{version}} is ready. Download it from GitHub Releases.',
   'notify.updateReady': 'Update ready',
-  'notify.updateReadyBody': 'Neko will install the update when you quit.'
+  'notify.updateReadyBody': 'Neko will install the update when you quit.',
+
+  'update.dialogTitle': 'Update available',
+  'update.dialogMessage': 'Neko {{version}} is available',
+  'update.dialogDetail':
+    'Automatic update could not finish. Open the download page to install the latest version.',
+  'update.dialogDownload': 'Download',
+  'update.dialogLater': 'Later'
 } as const
 
 export type MessageKey = keyof typeof en

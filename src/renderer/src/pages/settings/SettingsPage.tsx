@@ -37,8 +37,6 @@ import './settings.css'
 
 const { Paragraph, Text } = Typography
 
-const APP_VERSION = '0.1.0'
-
 type SettingsTab = 'break' | 'hours' | 'look' | 'system'
 
 const DAY_LABEL_KEY: Record<WorkingHoursDayKey, string> = {
@@ -419,6 +417,7 @@ export function SettingsPage({
   const [loading, setLoading] = useState(() => hasNekoBridge())
   const [tab, setTab] = useState<SettingsTab>('break')
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set(['break']))
+  const [appVersion, setAppVersion] = useState('')
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(saved), [draft, saved])
   const runtime = useRuntimeStatus()
 
@@ -433,6 +432,24 @@ export function SettingsPage({
       return copy
     })
   }
+
+  useEffect(() => {
+    if (!hasNekoBridge()) return
+
+    let cancelled = false
+    void getNekoApi()
+      .getAppVersion()
+      .then((version) => {
+        if (!cancelled) setAppVersion(version)
+      })
+      .catch((error: unknown) => {
+        console.warn('[neko] getAppVersion failed', error)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (!hasNekoBridge()) return
@@ -1044,7 +1061,7 @@ export function SettingsPage({
         {dirty && (
           <footer className="settings-footer">
             <span className="settings-version">
-              {t('settings.version', { version: APP_VERSION })}
+              {appVersion ? t('settings.version', { version: appVersion }) : null}
             </span>
             <div className="settings-footer-actions">
               <Button onClick={reset}>{t('common.discard')}</Button>

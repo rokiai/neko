@@ -14,6 +14,7 @@ export const IpcChannel = {
   TimeSinceLastBreakGet: 'neko:break:time-since-last',
   WasStartedFromTrayGet: 'neko:break:from-tray',
   RuntimeStatusGet: 'neko:runtime:status',
+  AppVersionGet: 'neko:app:version',
   SoundStartPlay: 'neko:sound:start',
   SoundEndPlay: 'neko:sound:end',
   BreakVideoSrcGet: 'neko:break-video:src',
@@ -44,6 +45,7 @@ export interface NekoApi {
   getTimeSinceLastBreak: () => Promise<number | null>
   wasStartedFromTray: () => Promise<boolean>
   getRuntimeStatus: () => Promise<RuntimeStatus>
+  getAppVersion: () => Promise<string>
   playStartSound: (type: SoundType, volume?: number) => Promise<void>
   playEndSound: (type: SoundType, volume?: number) => Promise<void>
   getBreakVideoSrc: (query?: BreakVideoSrcQuery) => Promise<string>

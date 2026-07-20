@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, type IpcMainInvokeEvent } from 'electron'
+import { app, BrowserWindow, ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { existsSync } from 'fs'
 import { IpcChannel, type BreakVideoSrcQuery, type PostponeAction } from '@shared/ipc'
 import { BUILTIN_BREAK_VIDEO, BreakVideoSource, type Settings } from '@shared/settings'
@@ -80,6 +80,8 @@ export function registerIpc(): void {
   ipcMain.handle(IpcChannel.WasStartedFromTrayGet, () => wasBreakStartedFromTray())
 
   ipcMain.handle(IpcChannel.RuntimeStatusGet, () => getRuntimeStatus())
+
+  ipcMain.handle(IpcChannel.AppVersionGet, () => app.getVersion())
 
   ipcMain.handle(IpcChannel.SoundStartPlay, (_event, type, volume = 1) => {
     broadcast(IpcChannel.SoundStartPlay, type, volume)
