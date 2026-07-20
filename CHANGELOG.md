@@ -5,6 +5,23 @@ All notable changes to Neko are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] — 2026-07-20
+
+### Changed
+
+- Default working hours cover the full day (`00:00`–`23:59`); narrow ranges remain configurable in Settings
+- Working-hours time inputs use hour / minute selects instead of Ant Design `TimePicker`
+- Upgrade Electron to 43
+- GitHub Releases are created as drafts again for manual review before publish
+
+### Fixed
+
+- macOS Dock icon and visibility stay in sync while the settings window is shown, minimized, or hidden
+
+### Docs
+
+- README: Gatekeeper install steps placed directly under the download links
+
 ## [0.1.0] — 2026-07-19
 
 ### Added
@@ -33,4 +50,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PolyForm Noncommercial License 1.0.0  
   Required Notice: Copyright (c) 2026 MultCat Authors
 
+[0.1.1]: https://github.com/rokiai/neko/releases/tag/v0.1.1
 [0.1.0]: https://github.com/rokiai/neko/releases/tag/v0.1.0
