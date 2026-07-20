@@ -10,14 +10,9 @@ import {
   Slider,
   Space,
   Switch,
-  TimePicker,
   Typography
 } from 'antd'
-import dayjs from 'dayjs'
-import customParseFormat from 'dayjs/plugin/customParseFormat'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-
-dayjs.extend(customParseFormat)
 import { resolveBreakMessage, resolveBreakTitle } from '@shared/break-copy'
 import { LOCALE_OPTIONS, type LocalePreference } from '@shared/i18n'
 import {
@@ -33,7 +28,6 @@ import {
   type WorkingHours,
   type WorkingHoursDayKey
 } from '@shared/settings'
-import { labelToMinutes, minutesToLabel } from '@shared/time'
 import mascotSrc from '../../assets/brand/neko-mascot.png'
 import { useI18n } from '../../i18n/use-i18n'
 import { getNekoApi, hasNekoBridge, isBrowserPreview } from '../../lib/neko'
@@ -224,6 +218,57 @@ const TAB_META: Array<{
   }
 ]
 
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => ({
+  value: hour,
+  label: String(hour).padStart(2, '0')
+}))
+
+const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, minute) => ({
+  value: minute,
+  label: String(minute).padStart(2, '0')
+}))
+
+function clampDayMinutes(total: number): number {
+  return Math.min(23 * 60 + 59, Math.max(0, Math.floor(total)))
+}
+
+function MinutesOfDaySelect({
+  value,
+  onChange,
+  disabled = false
+}: {
+  value: number
+  onChange: (next: number) => void
+  disabled?: boolean
+}): React.JSX.Element {
+  const safe = clampDayMinutes(value)
+  const hours = Math.floor(safe / 60)
+  const minutes = safe % 60
+
+  return (
+    <Space.Compact className="hours-time-select">
+      <Select
+        value={hours}
+        options={HOUR_OPTIONS}
+        disabled={disabled}
+        popupMatchSelectWidth={72}
+        listHeight={256}
+        onChange={(hour) => onChange(clampDayMinutes(hour * 60 + minutes))}
+        aria-label="Hour"
+      />
+      <Select
+        value={minutes}
+        options={MINUTE_OPTIONS}
+        disabled={disabled}
+        popupMatchSelectWidth={72}
+        listHeight={256}
+        onChange={(minute) => onChange(clampDayMinutes(hours * 60 + minute))}
+        aria-label="Minute"
+      />
+    </Space.Compact>
+  )
+}
+
 function RangeEditor({
   value,
   onChange,
@@ -234,12 +279,7 @@ function RangeEditor({
   disabled?: boolean
 }): React.JSX.Element {
   const { t } = useI18n()
-  const ranges = value.ranges?.length
-    ? value.ranges
-    : [
-        { fromMinutes: 9 * 60, toMinutes: 12 * 60 },
-        { fromMinutes: 14 * 60, toMinutes: 22 * 60 }
-      ]
+  const ranges = value.ranges?.length ? value.ranges : [{ fromMinutes: 0, toMinutes: 23 * 60 + 59 }]
 
   return (
     <div className={`hours-day ${disabled ? 'is-disabled' : ''}`}>
@@ -255,36 +295,22 @@ function RangeEditor({
       {ranges.map((range, index) => (
         <div key={index} className="hours-range">
           <div className="hours-range-times">
-            <TimePicker
-              value={dayjs(minutesToLabel(range.fromMinutes), 'HH:mm')}
-              format="HH:mm"
-              allowClear={false}
+            <MinutesOfDaySelect
+              value={range.fromMinutes}
               disabled={disabled || !value.enabled}
-              needConfirm={false}
-              onChange={(v) => {
-                if (!v) return
+              onChange={(fromMinutes) => {
                 const nextRanges = [...ranges]
-                nextRanges[index] = {
-                  ...range,
-                  fromMinutes: labelToMinutes(v.format('HH:mm'))
-                }
+                nextRanges[index] = { ...range, fromMinutes }
                 onChange({ ...value, ranges: nextRanges })
               }}
             />
             <span className="hours-to">{t('common.to')}</span>
-            <TimePicker
-              value={dayjs(minutesToLabel(range.toMinutes), 'HH:mm')}
-              format="HH:mm"
-              allowClear={false}
+            <MinutesOfDaySelect
+              value={range.toMinutes}
               disabled={disabled || !value.enabled}
-              needConfirm={false}
-              onChange={(v) => {
-                if (!v) return
+              onChange={(toMinutes) => {
                 const nextRanges = [...ranges]
-                nextRanges[index] = {
-                  ...range,
-                  toMinutes: labelToMinutes(v.format('HH:mm'))
-                }
+                nextRanges[index] = { ...range, toMinutes }
                 onChange({ ...value, ranges: nextRanges })
               }}
             />

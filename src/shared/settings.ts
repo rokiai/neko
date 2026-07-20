@@ -93,10 +93,9 @@ export interface Settings {
 
 const defaultDayHours = (): WorkingHours => ({
   enabled: true,
-  ranges: [
-    { fromMinutes: 9 * 60, toMinutes: 12 * 60 },
-    { fromMinutes: 14 * 60, toMinutes: 22 * 60 }
-  ]
+  // Full day by default so reminders run whenever the machine is on;
+  // users can still narrow hours in Settings.
+  ranges: [{ fromMinutes: 0, toMinutes: 23 * 60 + 59 }]
 })
 
 export const DEFAULT_SETTINGS: Settings = {

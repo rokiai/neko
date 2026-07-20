@@ -402,11 +402,16 @@
   flex: 1;
 }
 
-.hours-range .ant-picker {
-  min-width: 0;
-  width: auto;
-  max-width: 140px;
-  flex: 1 1 0;
+.hours-time-select {
+  flex: 0 0 auto;
+}
+
+.hours-time-select .ant-select {
+  width: 72px;
+}
+
+.hours-time-select .ant-select .ant-select-selector {
+  padding-inline: 10px !important;
 }
 
 .hours-to {

@@ -1,8 +1,9 @@
-import { BrowserWindow, app, screen } from 'electron'
+import { BrowserWindow, app, nativeImage, screen } from 'electron'
 import { existsSync } from 'fs'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { usesFullscreenBreakWindow } from '@shared/settings'
+import { resolveResource } from './paths'
 import { getSettings } from './store'
 import { registerWindowProvider } from './broadcast'
 
@@ -14,6 +15,45 @@ let isQuitting = false
 
 export function setAppQuitting(value: boolean): void {
   isQuitting = value
+}
+
+/** Packaged: Resources/icon.icns. Dev: build/icon.icns or resources/icon.png. */
+function appIconPath(): string {
+  const packaged = join(process.resourcesPath, 'icon.icns')
+  if (existsSync(packaged)) return packaged
+  const buildIcns = join(process.cwd(), 'build', 'icon.icns')
+  if (existsSync(buildIcns)) return buildIcns
+  return resolveResource('icon.png')
+}
+
+function applyMacDockIcon(): void {
+  if (process.platform !== 'darwin' || !app.dock) return
+  const image = nativeImage.createFromPath(appIconPath())
+  if (image.isEmpty()) return
+  const sized = image.getSize().width > 512 ? image.resize({ width: 512, height: 512 }) : image
+  app.dock.setIcon(sized)
+}
+
+/**
+ * LSUIElement tray app: Dock is hidden by default. Show it while Settings is
+ * open/minimized so the Dock window tile gets the Neko badge (like 钉钉).
+ */
+function syncMacDockVisibility(): void {
+  if (process.platform !== 'darwin' || !app.dock) return
+
+  const needsDock =
+    !!settingsWindow &&
+    !settingsWindow.isDestroyed() &&
+    (settingsWindow.isVisible() || settingsWindow.isMinimized())
+
+  if (needsDock) {
+    applyMacDockIcon()
+    if (!app.dock.isVisible()) {
+      void app.dock.show().then(() => applyMacDockIcon())
+    }
+  } else {
+    app.dock.hide()
+  }
 }
 
 function preloadPath(): string {
@@ -100,8 +140,12 @@ export function createSoundsWindow(): void {
 
 export function createSettingsWindow(): void {
   if (settingsWindow && !settingsWindow.isDestroyed()) {
+    if (settingsWindow.isMinimized()) {
+      settingsWindow.restore()
+    }
     settingsWindow.show()
     settingsWindow.focus()
+    syncMacDockVisibility()
     return
   }
 
@@ -113,6 +157,7 @@ export function createSettingsWindow(): void {
     show: false,
     autoHideMenuBar: true,
     title: 'Neko',
+    icon: appIconPath(),
     backgroundColor: '#EEF6F1',
     webPreferences: webPreferences()
   })
@@ -122,6 +167,20 @@ export function createSettingsWindow(): void {
 
   settingsWindow.on('ready-to-show', () => {
     settingsWindow?.show()
+    syncMacDockVisibility()
+  })
+
+  settingsWindow.on('minimize', () => {
+    syncMacDockVisibility()
+  })
+  settingsWindow.on('restore', () => {
+    syncMacDockVisibility()
+  })
+  settingsWindow.on('show', () => {
+    syncMacDockVisibility()
+  })
+  settingsWindow.on('hide', () => {
+    syncMacDockVisibility()
   })
 
   // Close button hides to the menu-bar tray instead of quitting.
@@ -129,10 +188,12 @@ export function createSettingsWindow(): void {
     if (isQuitting) return
     event.preventDefault()
     settingsWindow?.hide()
+    syncMacDockVisibility()
   })
 
   settingsWindow.on('closed', () => {
     settingsWindow = null
+    syncMacDockVisibility()
   })
 }
 
