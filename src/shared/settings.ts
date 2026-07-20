@@ -117,7 +117,7 @@ export const DEFAULT_SETTINGS: Settings = {
   workingHoursFriday: defaultDayHours(),
   workingHoursSaturday: defaultDayHours(),
   workingHoursSunday: defaultDayHours(),
-  idleResetEnabled: true,
+  idleResetEnabled: false,
   idleResetLengthSeconds: 5 * 60,
   idleResetNotification: false,
   soundType: SoundType.None,
