@@ -20,15 +20,15 @@
 
 ## 下载安装包
 
-**当前版本：[v0.1.1](https://github.com/rokiai/neko/releases/latest)**
+**当前版本：[v0.1.2](https://github.com/rokiai/neko/releases/latest)**
 
 | 平台                       | 安装包                                                                                               |
 | -------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **macOS（Apple Silicon）** | [Neko-0.1.1-arm64.dmg](https://github.com/rokiai/neko/releases/download/v0.1.1/Neko-0.1.1-arm64.dmg) |
-| **macOS（Intel）**         | [Neko-0.1.1-x64.dmg](https://github.com/rokiai/neko/releases/download/v0.1.1/Neko-0.1.1-x64.dmg)     |
-| **Windows**                | [Neko-0.1.1-setup.exe](https://github.com/rokiai/neko/releases/download/v0.1.1/Neko-0.1.1-setup.exe) |
-| **Linux（AppImage）**      | [Neko-0.1.1.AppImage](https://github.com/rokiai/neko/releases/download/v0.1.1/Neko-0.1.1.AppImage)   |
-| **Linux（deb）**           | [neko_0.1.1_amd64.deb](https://github.com/rokiai/neko/releases/download/v0.1.1/neko_0.1.1_amd64.deb) |
+| **macOS（Apple Silicon）** | [Neko-0.1.2-arm64.dmg](https://github.com/rokiai/neko/releases/download/v0.1.2/Neko-0.1.2-arm64.dmg) |
+| **macOS（Intel）**         | [Neko-0.1.2-x64.dmg](https://github.com/rokiai/neko/releases/download/v0.1.2/Neko-0.1.2-x64.dmg)     |
+| **Windows**                | [Neko-0.1.2-setup.exe](https://github.com/rokiai/neko/releases/download/v0.1.2/Neko-0.1.2-setup.exe) |
+| **Linux（AppImage）**      | [Neko-0.1.2.AppImage](https://github.com/rokiai/neko/releases/download/v0.1.2/Neko-0.1.2.AppImage)   |
+| **Linux（deb）**           | [neko_0.1.2_amd64.deb](https://github.com/rokiai/neko/releases/download/v0.1.2/neko_0.1.2_amd64.deb) |
 
 全部版本：[https://github.com/rokiai/neko/releases/latest](https://github.com/rokiai/neko/releases/latest)
 
