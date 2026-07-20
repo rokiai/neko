@@ -38,6 +38,8 @@ let pendingWorkSeconds = 0
 let lastStatsFlush = 0
 let previewActive = false
 let previewRelaunchPending = false
+/** Break was due while idle/outside hours; fire once scheduling resumes. */
+let pendingBreakDue = false
 
 function bumpWorkSecond(): void {
   pendingWorkSeconds += 1
@@ -145,6 +147,7 @@ export function scheduleNextBreak(isPostpone = false): void {
     ? clampSeconds(settings.postponeLengthSeconds, 1)
     : clampSeconds(settings.breakFrequencySeconds, 1)
 
+  pendingBreakDue = false
   breakTime = new Date(Date.now() + delaySeconds * 1000)
   tray()
 }
@@ -332,24 +335,40 @@ function tick(): void {
     const breakSeconds = clampSeconds(settings.breakFrequencySeconds, 1)
     const idleSeconds = clampSeconds(settings.idleResetLengthSeconds, 1)
     const lockSeconds = lockStart ? (now.getTime() - lockStart.getTime()) / 1000 : 0
+    const breakWasOverdue = !!breakTime && now.getTime() > breakTime.getTime()
 
     if (lockStart && lockSeconds > breakSeconds) {
       idleStart = null
       lockStart = null
     } else if (secondsSinceLastTick > breakSeconds) {
       lockStart = null
-      breakTime = null
+      // Sleep longer than one break interval: keep overdue time so we still pop on wake.
+      if (!breakWasOverdue) {
+        breakTime = null
+      }
     } else if (secondsSinceLastTick > idleSeconds) {
       if (!idleStart) idleStart = lastTick
-      scheduleNextBreak()
+      // Long idle/sleep gap: reset schedule unless a break was already due.
+      if (!breakWasOverdue) {
+        scheduleNextBreak()
+      }
     }
 
     if (!shouldHaveBreak && !havingBreak && breakTime) {
+      if (now.getTime() > breakTime.getTime()) {
+        pendingBreakDue = true
+      }
       if (idle) {
         idleStart = new Date(now.getTime() - idleSeconds * 1000)
       }
       breakTime = null
       tray()
+      return
+    }
+
+    if (shouldHaveBreak && pendingBreakDue && !havingBreak) {
+      pendingBreakDue = false
+      doBreak()
       return
     }
 
@@ -378,6 +397,7 @@ export function initBreaks(): void {
   havingBreak = false
   breakTime = null
   postponedCount = 0
+  pendingBreakDue = false
 
   if (settings.breaksEnabled) {
     scheduleNextBreak()

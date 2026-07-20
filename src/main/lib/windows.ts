@@ -198,6 +198,7 @@ export function createSettingsWindow(): void {
 }
 
 export function createBreakWindows(): void {
+  breakWindows = breakWindows.filter((win) => !win.isDestroyed())
   if (breakWindows.length) return
 
   const settings = getSettings()
