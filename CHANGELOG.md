@@ -5,6 +5,17 @@ All notable changes to Neko are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] — 2026-07-20
+
+### Added
+
+- Manual download dialog when a new version is found but auto-update cannot complete (opens GitHub Releases latest)
+- Settings footer version from `app.getVersion()` instead of a hardcoded string
+
+### Notes
+
+- macOS auto-install still requires Apple Developer ID signing; this dialog is the fallback
+
 ## [0.1.1] — 2026-07-20
 
 ### Changed
@@ -50,5 +61,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PolyForm Noncommercial License 1.0.0  
   Required Notice: Copyright (c) 2026 MultCat Authors
 
+[0.1.2]: https://github.com/rokiai/neko/releases/tag/v0.1.2
 [0.1.1]: https://github.com/rokiai/neko/releases/tag/v0.1.1
 [0.1.0]: https://github.com/rokiai/neko/releases/tag/v0.1.0
