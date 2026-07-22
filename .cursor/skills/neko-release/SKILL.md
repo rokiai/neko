@@ -10,6 +10,27 @@ description: >-
 
 Tag push of `v*` to **GitHub** (`origin`) runs `.github/workflows/release.yml`: multi-platform build + **public** GitHub Release. Mirror the same commits/tags to **Gitee** (`gitee`). Do not force-push tags or amend published history unless the user explicitly asks.
 
+## Author (required)
+
+Every commit in the release flow (product fixes, CHANGELOG, `pnpm version`) must be authored as:
+
+```
+rokiai <vnues.wgf@gmail.com>
+```
+
+- Normal commits: `git commit --author="rokiai <vnues.wgf@gmail.com>" …` (see `neko-commit`)
+- Version bump (`pnpm version` creates its own commit) — set author/committer for that process only, without changing git config:
+
+```bash
+GIT_AUTHOR_NAME=rokiai \
+GIT_AUTHOR_EMAIL=vnues.wgf@gmail.com \
+GIT_COMMITTER_NAME=rokiai \
+GIT_COMMITTER_EMAIL=vnues.wgf@gmail.com \
+pnpm version X.Y.Z
+```
+
+Verify: `git log -1 --format='%an <%ae>'` → `rokiai <vnues.wgf@gmail.com>`
+
 ## Remotes
 
 | Remote   | URL                                     | Role                |
@@ -76,16 +97,21 @@ Footer link:
 ## Step 3 — Bump version
 
 ```bash
+GIT_AUTHOR_NAME=rokiai \
+GIT_AUTHOR_EMAIL=vnues.wgf@gmail.com \
+GIT_COMMITTER_NAME=rokiai \
+GIT_COMMITTER_EMAIL=vnues.wgf@gmail.com \
 pnpm version X.Y.Z
 ```
 
-This runs `version` → `pnpm sync:readme`, bumps `package.json`, creates commit + tag `vX.Y.Z`.
+This runs `version` → `pnpm sync:readme`, bumps `package.json`, creates commit + tag `vX.Y.Z` as **rokiai**.
 
 Verify:
 
 ```bash
 node -p "require('./package.json').version"
 git rev-parse vX.Y.Z
+git log -1 --format='%an <%ae> %s'
 pnpm sync:readme:check
 ```
 
@@ -129,6 +155,8 @@ Tell the user:
 
 ## Do not
 
+- Commit as any author other than `rokiai <vnues.wgf@gmail.com>`
+- Change `git config` to set the author (use `--author` / `GIT_*` env instead)
 - Skip CHANGELOG or update it only after the tag
 - Push `main` to GitHub without the `v*` tag (no release job)
 - Push release only to Gitee and forget `origin` (CI never runs)

@@ -10,6 +10,31 @@ description: >-
 
 Commit intentional changes only. Never bump release version or create tags here — that belongs to `neko-release`.
 
+## Author (required)
+
+All Neko commits **must** be authored as:
+
+```
+rokiai <vnues.wgf@gmail.com>
+```
+
+Pass author on every commit (do **not** change global/local `git config`):
+
+```bash
+git commit --author="rokiai <vnues.wgf@gmail.com>" -m "$(cat <<'EOF'
+Message here.
+
+EOF
+)"
+```
+
+Verify after commit:
+
+```bash
+git log -1 --format='%an <%ae>'
+# expect: rokiai <vnues.wgf@gmail.com>
+```
+
 ## Remotes
 
 | Remote   | URL                                     | Role                    |
@@ -30,8 +55,8 @@ Commit Progress:
 - [ ] 1. status / diff / log (parallel)
 - [ ] 2. Draft message (why, 1–2 sentences)
 - [ ] 3. Stage relevant files only
-- [ ] 4. Commit via HEREDOC
-- [ ] 5. Verify status
+- [ ] 4. Commit via HEREDOC with --author rokiai
+- [ ] 5. Verify author + status
 - [ ] 6. Push both remotes only if user asked to push / 提交并推送 / 同步
 ```
 
@@ -57,15 +82,16 @@ Also `git diff --staged` if anything is already staged.
 
 ```bash
 git add <paths>
-git commit -m "$(cat <<'EOF'
+git commit --author="rokiai <vnues.wgf@gmail.com>" -m "$(cat <<'EOF'
 Message here.
 
 EOF
 )"
+git log -1 --format='%h %an <%ae> %s'
 git status
 ```
 
-If pre-commit hooks modify files and the commit fails or leaves dirty files, create a **new** commit (do not amend unless amend rules allow).
+If pre-commit hooks modify files and the commit fails or leaves dirty files, create a **new** commit with the same `--author` (do not amend unless amend rules allow).
 
 ## Step 4 — Push (only when asked)
 
@@ -87,6 +113,8 @@ git push gitee --tags
 
 ## Do not
 
+- Commit as any author other than `rokiai <vnues.wgf@gmail.com>`
+- Update `git config user.name` / `user.email` (use `--author` / env per commit instead)
 - Push only one remote when the user asked to sync both
 - Force-push `main` or rewrite published history without explicit approval
 - Mix release version bumps into a normal feature commit
@@ -94,4 +122,4 @@ git push gitee --tags
 
 ## Handoff
 
-Tell the user: commit SHA, short subject, whether pushed to `origin` and/or `gitee`.
+Tell the user: commit SHA, author, short subject, whether pushed to `origin` and/or `gitee`.
