@@ -1,0 +1,27 @@
+---
+description: Neko git author and dual remotes — always use rokiai for commits
+alwaysApply: true
+---
+
+# Git identity (always)
+
+All Neko commits **must** use:
+
+```
+rokiai <vnues.wgf@gmail.com>
+```
+
+- Commit: `git commit --author="rokiai <vnues.wgf@gmail.com>" …`
+- `pnpm version`: set `GIT_AUTHOR_NAME` / `GIT_AUTHOR_EMAIL` / `GIT_COMMITTER_*` for that command only
+- **Do not** change `git config user.name` / `user.email`
+
+## Remotes
+
+| Remote   | Role                                      |
+| -------- | ----------------------------------------- |
+| `origin` | GitHub — primary, CI / Releases           |
+| `gitee`  | Gitee — mirror                            |
+
+When pushing / syncing: push **both** `origin` and `gitee`, then keep `main` tracking `origin/main`.
+
+Full workflows: `.cursor/skills/neko-commit/SKILL.md`, `.cursor/skills/neko-release/SKILL.md`
