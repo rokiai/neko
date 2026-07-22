@@ -1,0 +1,31 @@
+---
+description: Neko modularity — avoid God files; split pages/modules by concern
+alwaysApply: true
+---
+
+# Modular structure (always)
+
+Neko must stay **modular, maintainable, iterable**. Do not grow God files.
+
+## Limits
+
+- React page/component: soft ~200, **hard split at 400 lines**
+- Main-process module: soft ~200, **hard split at 350 lines**
+- Feature CSS: soft ~200, **hard split at 400 lines**
+- One file = one primary job (even under soft limit if mixed concerns)
+
+## Patterns
+
+- Page = thin shell; tabs/sections/hooks/components live beside it
+- Settings: follow `TodayPanel` + `use-runtime-status`; never dump new tabs into `SettingsPage.tsx`
+- Main: thin `index`/`ipc`; domain folders (`break/`, `windows/`, `tray/`) as modules grow
+- CSS co-located with the UI region that owns it
+
+## Before large edits
+
+If a change would push a known-debt file further, **split first**:
+`scheduler.ts`, `windows.ts`, `tray.ts`, `BreakProgress.tsx`
+
+(Settings UI already modularized under `pages/settings/`.)
+
+Full guidance: `.cursor/skills/modular-structure/SKILL.md`
