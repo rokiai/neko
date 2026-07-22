@@ -1,0 +1,53 @@
+.field-with-unit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.field-with-unit .ant-input-number {
+  flex: 1;
+  min-width: 0;
+}
+
+.field-unit {
+  color: var(--neko-muted);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Settings default / ghost actions — clear outline, not heavy grey pills */
+.settings-shell .ant-btn-default {
+  border-radius: 12px;
+  border-color: rgba(63, 159, 126, 0.22);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--neko-accent-strong);
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.settings-shell .ant-btn-default:not(:disabled):hover {
+  border-color: rgba(63, 159, 126, 0.42);
+  background: rgba(63, 159, 126, 0.08);
+  color: var(--neko-accent-strong);
+}
+
+.settings-shell .ant-btn-default:disabled {
+  border-color: rgba(74, 120, 96, 0.12);
+  background: rgba(255, 255, 255, 0.45);
+  color: var(--neko-muted);
+}
+
+.settings-shell .ant-btn-dashed {
+  border-radius: 12px;
+  border-color: rgba(63, 159, 126, 0.28);
+  background: rgba(255, 255, 255, 0.45);
+  color: var(--neko-accent-strong);
+  font-weight: 700;
+}
+
+.settings-shell .ant-btn-dashed:not(:disabled):hover {
+  border-color: rgba(63, 159, 126, 0.48);
+  background: rgba(63, 159, 126, 0.08);
+  color: var(--neko-accent-strong);
+}

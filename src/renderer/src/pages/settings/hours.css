@@ -1,0 +1,131 @@
+.hours-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.hours-block {
+  position: relative;
+  z-index: 0;
+  border: 1px solid var(--neko-line);
+  border-radius: 18px;
+  padding: 14px;
+  background: rgba(247, 251, 248, 0.9);
+}
+
+.hours-block:hover,
+.hours-block:focus-within {
+  z-index: 2;
+}
+
+.hours-day {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.hours-day.is-disabled {
+  opacity: 0.55;
+}
+
+.hours-day-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hours-range {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.hours-range-times {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.hours-time-select {
+  flex: 0 0 auto;
+}
+
+.hours-time-select .ant-select {
+  width: 72px;
+}
+
+.hours-time-select .ant-select .ant-select-selector {
+  padding-inline: 10px !important;
+}
+
+.hours-to {
+  color: var(--neko-muted);
+  font-size: 12px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.hours-range-remove {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: rgba(74, 120, 96, 0.45);
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    transform 140ms ease;
+}
+
+.hours-range-remove svg {
+  width: 18px;
+  height: 18px;
+}
+
+.hours-range-remove:hover:not(:disabled) {
+  background: transparent;
+  color: var(--neko-accent-strong);
+}
+
+.hours-range-remove:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.hours-range-remove:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.hours-add-range.ant-btn {
+  width: 100%;
+  height: 38px;
+  border-radius: 12px !important;
+  border: 1px solid rgba(63, 159, 126, 0.28) !important;
+  background: rgba(255, 255, 255, 0.55) !important;
+  color: var(--neko-accent-strong) !important;
+  font-weight: 700;
+  box-shadow: none !important;
+}
+
+.hours-add-range.ant-btn:hover:not(:disabled) {
+  border-color: rgba(63, 159, 126, 0.48) !important;
+  background: rgba(63, 159, 126, 0.08) !important;
+  color: var(--neko-accent-strong) !important;
+}
+
+.hours-add-range.ant-btn:disabled {
+  opacity: 0.45;
+}
