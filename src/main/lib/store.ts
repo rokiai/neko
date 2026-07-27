@@ -11,6 +11,8 @@ export interface AppStoreSchema {
   settingsVersion: number
   disableEndTime: number | null
   dailyStats: DailyStats
+  /** First-run prompt for login launch; once true, never show again. */
+  autoLaunchOnboardingSeen: boolean
 }
 
 type StoreInstance = ElectronStore<AppStoreSchema>
@@ -75,7 +77,8 @@ function getStore(): StoreInstance {
         settings: DEFAULT_SETTINGS,
         settingsVersion: SETTINGS_VERSION,
         disableEndTime: null,
-        dailyStats: { ...DEFAULT_DAILY_STATS, dayKey: localDayKey() }
+        dailyStats: { ...DEFAULT_DAILY_STATS, dayKey: localDayKey() },
+        autoLaunchOnboardingSeen: false
       }
     })
     migrateSettings(store)
@@ -151,4 +154,12 @@ export function patchDailyStats(patch: Partial<Omit<DailyStats, 'dayKey'>>): Dai
   }
   setDailyStats(next)
   return next
+}
+
+export function getAutoLaunchOnboardingSeen(): boolean {
+  return getStore().get('autoLaunchOnboardingSeen') === true
+}
+
+export function setAutoLaunchOnboardingSeen(seen: boolean): void {
+  getStore().set('autoLaunchOnboardingSeen', seen)
 }

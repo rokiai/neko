@@ -118,6 +118,11 @@ export const ja: Messages = {
 
   'settings.autoLaunch': 'ログイン時に起動',
   'settings.autoLaunchHint': 'サインイン時に Neko を静かに起動します。',
+  'onboarding.autoLaunch.title': 'ログイン時に Neko を起動しますか？',
+  'onboarding.autoLaunch.body':
+    'Neko はメニューバーに常駐します。「ログイン時に起動」をオンにすると、サインイン後に静かに起動し、毎回手動で開かなくても休憩リマインダーが続きます。',
+  'onboarding.autoLaunch.enable': 'ログイン時起動をオン',
+  'onboarding.autoLaunch.skip': 'あとで',
   'settings.menuBarTimer': 'メニューバータイマー',
   'settings.menuBarTimerHint': 'トレイアイコンの横にカウントダウンを表示します。',
   'settings.menuBarMode': 'メニューバーモード',

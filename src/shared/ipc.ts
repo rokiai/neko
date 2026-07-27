@@ -20,7 +20,9 @@ export const IpcChannel = {
   BreakVideoSrcGet: 'neko:break-video:src',
   BreakVideoPick: 'neko:break-video:pick',
   BreakVideoImport: 'neko:break-video:import',
-  BreakPreview: 'neko:break:preview'
+  BreakPreview: 'neko:break:preview',
+  AutoLaunchOnboardingSeenGet: 'neko:onboarding:auto-launch:seen',
+  AutoLaunchOnboardingDismiss: 'neko:onboarding:auto-launch:dismiss'
 } as const
 
 export type IpcChannelName = (typeof IpcChannel)[keyof typeof IpcChannel]
@@ -52,6 +54,8 @@ export interface NekoApi {
   pickBreakVideo: () => Promise<string | null>
   importBreakVideo: () => Promise<string | null>
   previewBreak: (settings: Settings) => Promise<void>
+  getAutoLaunchOnboardingSeen: () => Promise<boolean>
+  dismissAutoLaunchOnboarding: () => Promise<void>
   onBreakStart: (listener: (breakEndTime: number) => void) => () => void
   onBreakEnd: (listener: () => void) => () => void
   onSoundStart: (listener: (type: SoundType, volume: number) => void) => () => void

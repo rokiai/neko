@@ -118,6 +118,11 @@ export const en = {
 
   'settings.autoLaunch': 'Launch at login',
   'settings.autoLaunchHint': 'Start Neko quietly when you sign in.',
+  'onboarding.autoLaunch.title': 'Start Neko when you log in?',
+  'onboarding.autoLaunch.body':
+    'Neko lives in the menu bar. Launch at login starts it quietly after you sign in, so break reminders keep working without opening the app by hand.',
+  'onboarding.autoLaunch.enable': 'Enable launch at login',
+  'onboarding.autoLaunch.skip': 'Not now',
   'settings.menuBarTimer': 'Menu bar timer',
   'settings.menuBarTimerHint': 'Show a live countdown beside the tray icon.',
   'settings.menuBarMode': 'Menu bar mode',

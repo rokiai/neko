@@ -16,7 +16,12 @@ import {
   signalBreakEnd,
   wasBreakStartedFromTray
 } from './scheduler'
-import { getSettings, setSettings as persistSettings } from './store'
+import {
+  getAutoLaunchOnboardingSeen,
+  getSettings,
+  setAutoLaunchOnboardingSeen,
+  setSettings as persistSettings
+} from './store'
 import { syncLocaleFromSettings } from './i18n'
 import { buildTray } from './tray'
 import { toNekoVideoUrl } from './video-protocol'
@@ -101,5 +106,11 @@ export function registerIpc(): void {
 
   ipcMain.handle(IpcChannel.BreakPreview, (_event, settings: Settings) => {
     previewBreak(settings)
+  })
+
+  ipcMain.handle(IpcChannel.AutoLaunchOnboardingSeenGet, () => getAutoLaunchOnboardingSeen())
+
+  ipcMain.handle(IpcChannel.AutoLaunchOnboardingDismiss, () => {
+    setAutoLaunchOnboardingSeen(true)
   })
 }

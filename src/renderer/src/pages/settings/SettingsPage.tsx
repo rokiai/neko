@@ -1,18 +1,22 @@
 import { Button } from 'antd'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { LocalePreference } from '@shared/i18n'
 import mascotSrc from '../../assets/brand/neko-mascot.png'
 import { useI18n } from '../../i18n/use-i18n'
 import { isBrowserPreview } from '../../lib/neko'
+import { AutoLaunchOnboarding } from './components/AutoLaunchOnboarding'
 import { BreakTab } from './tabs/BreakTab'
 import { HoursTab } from './tabs/HoursTab'
 import { LookTab } from './tabs/LookTab'
 import { SystemTab } from './tabs/SystemTab'
 import { TAB_META, type SettingsTab } from './tab-meta'
 import { TodayPanel } from './TodayPanel'
+import { useAutoLaunchOnboarding } from './use-auto-launch-onboarding'
 import { useRuntimeStatus } from './use-runtime-status'
 import { useSettingsDraft } from './use-settings-draft'
 import './settings.css'
+
+const AUTO_LAUNCH_HIGHLIGHT_MS = 3200
 
 export function SettingsPage({
   onLocalePreferenceChange
@@ -20,11 +24,13 @@ export function SettingsPage({
   onLocalePreferenceChange: (preference: LocalePreference) => void
 }): React.JSX.Element {
   const { t } = useI18n()
-  const { draft, dirty, loading, bridgeError, platform, appVersion, patch, save, reset } =
+  const { draft, dirty, loading, bridgeError, platform, appVersion, patch, save, commit, reset } =
     useSettingsDraft(onLocalePreferenceChange)
   const runtime = useRuntimeStatus()
+  const onboarding = useAutoLaunchOnboarding()
   const [tab, setTab] = useState<SettingsTab>('break')
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set(['break']))
+  const [highlightAutoLaunch, setHighlightAutoLaunch] = useState(false)
 
   const activeMeta = TAB_META.find((item) => item.key === tab) ?? TAB_META[0]
 
@@ -36,6 +42,19 @@ export function SettingsPage({
       copy.add(next)
       return copy
     })
+  }
+
+  useEffect(() => {
+    if (!highlightAutoLaunch) return
+    const timer = window.setTimeout(() => setHighlightAutoLaunch(false), AUTO_LAUNCH_HIGHLIGHT_MS)
+    return () => window.clearTimeout(timer)
+  }, [highlightAutoLaunch])
+
+  const handleEnableAutoLaunch = async (): Promise<void> => {
+    await commit({ autoLaunch: true })
+    await onboarding.dismiss()
+    switchTab('system')
+    setHighlightAutoLaunch(true)
   }
 
   if (loading) {
@@ -136,7 +155,12 @@ export function SettingsPage({
               hidden={tab !== 'system'}
               aria-hidden={tab !== 'system'}
             >
-              <SystemTab draft={draft} patch={patch} platform={platform} />
+              <SystemTab
+                draft={draft}
+                patch={patch}
+                platform={platform}
+                highlightAutoLaunch={highlightAutoLaunch}
+              />
             </div>
           )}
         </div>
@@ -157,6 +181,12 @@ export function SettingsPage({
       </div>
 
       <TodayPanel status={runtime} />
+
+      <AutoLaunchOnboarding
+        open={onboarding.open}
+        onEnable={handleEnableAutoLaunch}
+        onSkip={onboarding.dismiss}
+      />
     </div>
   )
 }

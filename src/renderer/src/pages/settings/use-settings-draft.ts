@@ -18,6 +18,7 @@ export function useSettingsDraft(
   appVersion: string
   patch: SettingsPatch
   save: () => Promise<void>
+  commit: (partial: Partial<Settings>) => Promise<void>
   reset: () => void
 } {
   const { message } = App.useApp()
@@ -93,6 +94,15 @@ export function useSettingsDraft(
     message.success(t('settings.saved'))
   }
 
+  const commit = async (partial: Partial<Settings>): Promise<void> => {
+    const next = { ...draft, ...partial }
+    await getNekoApi().setSettings(next)
+    setDraft(next)
+    setSaved(next)
+    if (partial.locale != null) onLocalePreferenceChange(partial.locale)
+    message.success(t('settings.saved'))
+  }
+
   const reset = (): void => {
     setDraft(saved)
     onLocalePreferenceChange(saved.locale ?? 'system')
@@ -107,6 +117,7 @@ export function useSettingsDraft(
     appVersion,
     patch,
     save,
+    commit,
     reset
   }
 }

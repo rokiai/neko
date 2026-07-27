@@ -117,6 +117,11 @@ export const zh: Messages = {
 
   'settings.autoLaunch': '登录时启动',
   'settings.autoLaunchHint': '登录后静默启动 Neko。',
+  'onboarding.autoLaunch.title': '登录时启动 Neko？',
+  'onboarding.autoLaunch.body':
+    'Neko 常驻菜单栏。开启「登录时启动」后，登录系统会静默拉起应用，休息提醒无需每次手动打开。',
+  'onboarding.autoLaunch.enable': '开启登录时启动',
+  'onboarding.autoLaunch.skip': '稍后再说',
   'settings.menuBarTimer': '菜单栏计时',
   'settings.menuBarTimerHint': '在托盘图标旁显示实时倒计时。',
   'settings.menuBarMode': '菜单栏模式',

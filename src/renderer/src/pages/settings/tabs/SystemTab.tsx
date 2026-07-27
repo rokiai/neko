@@ -9,11 +9,13 @@ const { Paragraph, Text } = Typography
 export function SystemTab({
   draft,
   patch,
-  platform
+  platform,
+  highlightAutoLaunch = false
 }: {
   draft: Settings
   patch: SettingsPatch
   platform: NodeJS.Platform
+  highlightAutoLaunch?: boolean
 }): React.JSX.Element {
   const { t } = useI18n()
 
@@ -39,7 +41,7 @@ export function SystemTab({
           </Form.Item>
         </Form>
         <Divider />
-        <div className="settings-row">
+        <div className={`settings-row${highlightAutoLaunch ? ' is-onboarding-highlight' : ''}`}>
           <div>
             <Text strong>{t('settings.autoLaunch')}</Text>
             <Paragraph type="secondary">{t('settings.autoLaunchHint')}</Paragraph>
