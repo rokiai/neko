@@ -6,59 +6,51 @@ use tauri_plugin_notification::NotificationExt;
 
 use crate::{
     cmd,
+    config::{bool_at, integer_at},
     core::i18n,
-    monitors::idle,
     platform,
     scheduler::state::AppState,
     scheduler::transitions::{self, TickInput, clear_active_break_locked, schedule_next_locked},
-    scheduler::util::{
-        bool_from_settings, break_frequency_seconds, integer_from_settings, now_ms,
-        string_from_settings, strip_html,
-    },
+    scheduler::util::{break_frequency_seconds, now_ms, string_from_settings, strip_html},
 };
 
 pub(crate) fn tick<R: Runtime>(app: &AppHandle<R>) {
     check_disable_timeout(app);
     let now = now_ms();
     let state = app.state::<AppState>();
-    let settings = state.config.lock().settings.clone();
-    let idle_threshold = integer_from_settings(&settings, "idleResetLengthSeconds", 300).max(1);
+    let settings = state.runtime_settings();
 
-    let outcome = {
+    // The OS idle/lock probes run before the scheduler lock is taken so a slow
+    // syscall cannot stall IPC commands that need the same lock.
+    let idle_status = state.idle.lock().read_status(
+        settings.idle_reset_length_seconds,
+        settings.idle_reset_enabled,
+        now,
+    );
+
+    let (outcome, having_break) = {
         let mut scheduler = state.scheduler.lock();
-        let idle_status = idle::read_status(
-            &mut scheduler,
-            idle_threshold,
-            bool_from_settings(&settings, "idleResetEnabled", false),
-            now,
-        );
-        transitions::apply(
+        let outcome = transitions::apply(
             &mut scheduler,
             &TickInput {
                 now,
                 idle_status,
-                in_working_hours: super::is_within_working_hours(&settings),
-                breaks_enabled: bool_from_settings(&settings, "breaksEnabled", true),
-                frequency_seconds: integer_from_settings(&settings, "breakFrequencySeconds", 1_680)
-                    .max(1),
-                idle_threshold_seconds: idle_threshold,
-                idle_reset_notification: bool_from_settings(
-                    &settings,
-                    "idleResetNotification",
-                    false,
-                ),
+                in_working_hours: settings.in_working_hours,
+                breaks_enabled: settings.breaks_enabled,
+                frequency_seconds: settings.break_frequency_seconds,
+                idle_threshold_seconds: settings.idle_reset_length_seconds,
+                idle_reset_notification: settings.idle_reset_notification,
             },
-        )
+        );
+        (outcome, scheduler.having_break)
     };
 
     if outcome.flush_work_seconds > 0 {
         state.add_work_seconds(outcome.flush_work_seconds);
-        if let Err(error) = state.save_config() {
-            tracing::warn!("could not persist work stats: {error}");
-        }
+        state.save_config_detached();
     }
     if let Some(minutes) = outcome.idle_reset_minutes {
-        let locale = i18n::resolve(&settings);
+        let locale = settings.locale;
         let _ = app
             .notification()
             .builder()
@@ -69,10 +61,11 @@ pub(crate) fn tick<R: Runtime>(app: &AppHandle<R>) {
     if outcome.trigger_break {
         trigger_break(app);
     }
-    if state.scheduler.lock().having_break {
+    if having_break {
         platform::maintain_break_windows(app);
     }
-    platform::refresh_tray(app);
+    platform::refresh_tray_with(app, settings);
+    platform::push_runtime_status(app, settings);
 }
 
 pub(crate) fn trigger_break<R: Runtime>(app: &AppHandle<R>) {
@@ -91,7 +84,7 @@ pub(crate) fn trigger_break<R: Runtime>(app: &AppHandle<R>) {
         .get("notificationType")
         .and_then(Value::as_str)
         .is_some_and(|kind| kind == "NOTIFICATION")
-        || bool_from_settings(&settings, "immediatelyStartBreaks", true)
+        || bool_at(&settings, "immediatelyStartBreaks", true)
         || app.state::<AppState>().scheduler.lock().started_from_tray;
     if starts_immediately
         && settings.get("notificationType").and_then(Value::as_str) != Some("NOTIFICATION")
@@ -142,7 +135,7 @@ fn trigger_notification_break<R: Runtime>(app: &AppHandle<R>, settings: &Value) 
         tracing::warn!("could not play Break start sound: {error}");
     }
 
-    let length = integer_from_settings(settings, "breakLengthSeconds", 120).max(1);
+    let length = integer_at(settings, "breakLengthSeconds", 120).max(1);
     state.complete_notification_break(length, now_ms());
     if let Err(error) = state.save_config() {
         tracing::warn!("could not persist notification Break stats: {error}");

@@ -11,9 +11,11 @@ use serde_json::{Value, json};
 use tauri::{AppHandle, Manager, Runtime};
 
 mod persist;
+mod runtime;
 mod schema;
 
-pub use persist::save;
+pub use persist::{save, serialize, write};
+pub use runtime::{RuntimeSettings, TrayTextMode, bool_at, integer_at};
 pub use schema::validate_settings;
 
 pub const SETTINGS_VERSION: u32 = 5;

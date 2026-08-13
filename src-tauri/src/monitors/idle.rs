@@ -1,7 +1,6 @@
 use user_idle2::UserIdle;
 
 use crate::monitors::lock;
-use crate::scheduler::state::SchedulerState;
 
 pub const MAX_DETECTION_FAILURES: u8 = 3;
 
@@ -15,38 +14,58 @@ pub struct IdleStatus {
     pub lock_start_at_ms: Option<i64>,
 }
 
-pub fn read_status(
-    scheduler: &mut SchedulerState,
-    threshold_seconds: i64,
-    idle_reset_enabled: bool,
-    now_ms: i64,
-) -> IdleStatus {
-    if scheduler.idle_detection_disabled {
-        return IdleStatus::default();
+/// Probe-owned state: the failure fuse and the current lock anchor.
+///
+/// Deliberately separate from `SchedulerState`: the OS probes below are
+/// syscalls, and running them under the scheduler lock would stall every IPC
+/// command that needs the same lock. The scheduler consumes only the returned
+/// `IdleStatus`, never this internal state.
+#[derive(Default)]
+pub struct IdleProbe {
+    failures: u8,
+    disabled: bool,
+    lock_start_at_ms: Option<i64>,
+}
+
+impl IdleProbe {
+    pub fn read_status(
+        &mut self,
+        threshold_seconds: i64,
+        idle_reset_enabled: bool,
+        now_ms: i64,
+    ) -> IdleStatus {
+        if self.disabled {
+            return IdleStatus::default();
+        }
+
+        match UserIdle::get_time() {
+            Ok(idle) => {
+                self.failures = 0;
+                evaluate(
+                    &mut self.lock_start_at_ms,
+                    idle.as_seconds(),
+                    lock::is_screen_locked(),
+                    threshold_seconds,
+                    idle_reset_enabled,
+                    now_ms,
+                )
+            }
+            Err(error) => {
+                self.failures = self.failures.saturating_add(1);
+                if self.failures >= MAX_DETECTION_FAILURES {
+                    self.disabled = true;
+                    tracing::warn!("idle detection disabled after repeated failures: {error}");
+                } else {
+                    tracing::warn!("could not read idle duration: {error}");
+                }
+                IdleStatus::default()
+            }
+        }
     }
 
-    match UserIdle::get_time() {
-        Ok(idle) => {
-            scheduler.idle_detection_failures = 0;
-            evaluate(
-                &mut scheduler.lock_start_at_ms,
-                idle.as_seconds(),
-                lock::is_screen_locked(),
-                threshold_seconds,
-                idle_reset_enabled,
-                now_ms,
-            )
-        }
-        Err(error) => {
-            scheduler.idle_detection_failures = scheduler.idle_detection_failures.saturating_add(1);
-            if scheduler.idle_detection_failures >= MAX_DETECTION_FAILURES {
-                scheduler.idle_detection_disabled = true;
-                tracing::warn!("idle detection disabled after repeated failures: {error}");
-            } else {
-                tracing::warn!("could not read idle duration: {error}");
-            }
-            IdleStatus::default()
-        }
+    /// Drops the current lock anchor when the schedule is reset.
+    pub fn forget_lock(&mut self) {
+        self.lock_start_at_ms = None;
     }
 }
 

@@ -29,5 +29,7 @@ export interface NekoApi {
   dismissAutoLaunchOnboarding: () => Promise<void>
   onBreakStart: (listener: (breakEndTime: number) => void) => () => void
   onBreakEnd: (listener: () => void) => () => void
+  /** Pushed once a second, and only while the Settings window is visible. */
+  onRuntimeStatus: (listener: (status: RuntimeStatus) => void) => () => void
   platform: NodeJS.Platform
 }

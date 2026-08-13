@@ -1,5 +1,5 @@
 import { App } from 'antd'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { LocalePreference } from '@shared/i18n'
 import { DEFAULT_SETTINGS, type Settings } from '@shared/settings'
 import { useI18n } from '../../i18n/use-i18n'
@@ -32,7 +32,11 @@ export function useSettingsDraft(
   )
   const [loading, setLoading] = useState(true)
   const [appVersion, setAppVersion] = useState('')
-  const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(saved), [draft, saved])
+  // Settings nest per-weekday range arrays, so a shallow compare would miss
+  // edits. Serialising `saved` separately means a draft edit only re-stringifies
+  // the draft — relevant while dragging a slider, which patches continuously.
+  const savedJson = useMemo(() => JSON.stringify(saved), [saved])
+  const dirty = useMemo(() => JSON.stringify(draft) !== savedJson, [draft, savedJson])
 
   useEffect(() => {
     let cancelled = false
@@ -75,13 +79,18 @@ export function useSettingsDraft(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const patch: SettingsPatch = (key, value) => {
-    setDraft((prev) => {
-      const next = { ...prev, [key]: value }
-      if (key === 'locale') onLocalePreferenceChange(value as LocalePreference)
-      return next
-    })
-  }
+  // Stable across renders: these are handed to every tab, so a fresh identity
+  // each render would defeat any memoisation downstream.
+  const patch: SettingsPatch = useCallback(
+    (key, value) => {
+      setDraft((prev) => {
+        const next = { ...prev, [key]: value }
+        if (key === 'locale') onLocalePreferenceChange(value as LocalePreference)
+        return next
+      })
+    },
+    [onLocalePreferenceChange]
+  )
 
   const save = async (): Promise<void> => {
     try {

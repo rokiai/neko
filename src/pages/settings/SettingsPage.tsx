@@ -5,6 +5,7 @@ import mascotSrc from '../../assets/brand/neko-mascot.png'
 import { useI18n } from '../../i18n/use-i18n'
 import { isBrowserPreview } from '../../lib/neko'
 import { AutoLaunchOnboarding } from './components/AutoLaunchOnboarding'
+import { SidebarStatus } from './components/SidebarStatus'
 import { BreakTab } from './tabs/BreakTab'
 import { HoursTab } from './tabs/HoursTab'
 import { LookTab } from './tabs/LookTab'
@@ -12,7 +13,6 @@ import { SystemTab } from './tabs/SystemTab'
 import { TAB_META, type SettingsTab } from './tab-meta'
 import { TodayPanel } from './TodayPanel'
 import { useAutoLaunchOnboarding } from './use-auto-launch-onboarding'
-import { useRuntimeStatus } from './use-runtime-status'
 import { useSettingsDraft } from './use-settings-draft'
 import './settings.css'
 
@@ -26,7 +26,6 @@ export function SettingsPage({
   const { t } = useI18n()
   const { draft, dirty, loading, bridgeError, platform, appVersion, patch, save, commit, reset } =
     useSettingsDraft(onLocalePreferenceChange)
-  const runtime = useRuntimeStatus()
   const onboarding = useAutoLaunchOnboarding()
   const [tab, setTab] = useState<SettingsTab>('break')
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set(['break']))
@@ -98,13 +97,7 @@ export function SettingsPage({
 
         <div className="settings-sidebar-foot">
           <img className="settings-mascot" src={mascotSrc} alt="" />
-          <div className="settings-status">
-            <div className="settings-status-dot">
-              {runtime.breaksEnabled && !runtime.idle
-                ? t('settings.status.running')
-                : t('common.off')}
-            </div>
-          </div>
+          <SidebarStatus />
         </div>
       </aside>
 
@@ -180,7 +173,7 @@ export function SettingsPage({
         )}
       </div>
 
-      <TodayPanel status={runtime} />
+      <TodayPanel />
 
       <AutoLaunchOnboarding
         open={onboarding.open}

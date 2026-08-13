@@ -32,11 +32,13 @@ export function BreakProgress({
   const [localEndTime, setLocalEndTime] = useState<number | null>(null)
   const [now, setNow] = useState(0)
   const [actionPending, setActionPending] = useState(false)
+  const meterRef = useRef<HTMLDivElement>(null)
   const startedAt = useRef(0)
   const finished = useRef(false)
   const readyOnce = useRef(false)
 
   const endTime = sharedEndTime ?? localEndTime
+  const lengthMs = settings.breakLengthSeconds * 1000
 
   useEffect(() => {
     if (readyOnce.current) return
@@ -70,12 +72,33 @@ export function BreakProgress({
     })()
   }, [isPrimary, neko, onReady, settings])
 
+  // 1s is the precision the UI actually shows (remaining seconds, whole
+  // percent). Reading the wall clock each tick keeps the countdown correct
+  // across system sleep, which a single end-of-break timeout would not.
   useEffect(() => {
     const id = window.setInterval(() => {
       setNow(performance.now() + performance.timeOrigin)
-    }, 50)
+    }, 1000)
     return () => window.clearInterval(id)
   }, [])
+
+  // Written straight to the DOM once per end time: the bar is owned by the
+  // compositor, not by React, so the countdown re-render neither restarts nor
+  // advances it. The negative delay skips the part of the break that already
+  // elapsed, which matters for a window opened mid-break.
+  useEffect(() => {
+    const meter = meterRef.current
+    if (!meter) return
+    if (!endTime) {
+      meter.style.animation = ''
+      return
+    }
+    const elapsedMs = Math.min(
+      lengthMs,
+      Math.max(0, lengthMs - (endTime - (performance.now() + performance.timeOrigin)))
+    )
+    meter.style.animation = `break-meter-fill ${lengthMs}ms linear ${-elapsedMs}ms forwards`
+  }, [endTime, lengthMs])
 
   useEffect(() => {
     if (!endTime || finished.current || closing || !now) return
@@ -96,9 +119,9 @@ export function BreakProgress({
     }
   }, [closing, endTime, isPrimary, neko, now, onFinished, settings])
 
-  const lengthMs = settings.breakLengthSeconds * 1000
   const remainingMs = endTime && now ? Math.max(0, endTime - now) : lengthMs
   const progress = endTime && now ? 1 - remainingMs / lengthMs : 0
+
   const canEnd = isPrimary && settings.endBreakEnabled
   const canSkip = isPrimary && settings.skipBreakEnabled
   const showCardBackdrop = settings.showBackdrop
@@ -112,7 +135,7 @@ export function BreakProgress({
   }
 
   return (
-    <div className={`break-stage ${closing ? 'is-closing' : ''} is-card`}>
+    <div className="break-stage">
       {showCardBackdrop && (
         <div
           className="break-backdrop"
@@ -129,10 +152,7 @@ export function BreakProgress({
         <h1>{breakTitle}</h1>
         <p className="break-message">{breakMessage}</p>
         <div className="break-meter">
-          <div
-            className="break-meter-fill"
-            style={{ width: `${Math.min(100, progress * 100)}%` }}
-          />
+          <div ref={meterRef} className="break-meter-fill" />
         </div>
         <div className="break-meta">
           <span>{formatDuration(remainingMs / 1000)}</span>

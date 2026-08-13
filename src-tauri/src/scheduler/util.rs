@@ -1,7 +1,10 @@
 use serde_json::Value;
 use tauri::{AppHandle, Manager, Runtime};
 
-use crate::scheduler::state::AppState;
+use crate::{
+    config::{bool_at, integer_at},
+    scheduler::state::AppState,
+};
 
 pub(crate) fn now_ms() -> i64 {
     chrono::Local::now().timestamp_millis()
@@ -16,37 +19,23 @@ pub(crate) fn postpone_length_seconds<R: Runtime>(app: &AppHandle<R>) -> i64 {
 }
 
 pub(crate) fn break_length_seconds_for_active_break<R: Runtime>(app: &AppHandle<R>) -> i64 {
-    integer_from_settings(&super::active_settings(app), "breakLengthSeconds", 120).max(1)
+    integer_at(&super::active_settings(app), "breakLengthSeconds", 120).max(1)
 }
 
 pub(crate) fn integer_setting<R: Runtime>(app: &AppHandle<R>, key: &str, fallback: i64) -> i64 {
-    integer_from_settings(
+    integer_at(
         &app.state::<AppState>().config.lock().settings,
         key,
         fallback,
     )
-}
-
-pub(crate) fn integer_from_settings(settings: &Value, key: &str, fallback: i64) -> i64 {
-    settings
-        .get(key)
-        .and_then(Value::as_i64)
-        .unwrap_or(fallback)
 }
 
 pub(crate) fn bool_setting<R: Runtime>(app: &AppHandle<R>, key: &str, fallback: bool) -> bool {
-    bool_from_settings(
+    bool_at(
         &app.state::<AppState>().config.lock().settings,
         key,
         fallback,
     )
-}
-
-pub(crate) fn bool_from_settings(settings: &Value, key: &str, fallback: bool) -> bool {
-    settings
-        .get(key)
-        .and_then(Value::as_bool)
-        .unwrap_or(fallback)
 }
 
 pub(crate) fn string_from_settings(settings: &Value, key: &str) -> Option<String> {

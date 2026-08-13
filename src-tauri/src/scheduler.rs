@@ -5,7 +5,6 @@
 
 use std::time::Duration;
 
-use chrono::{Datelike, Timelike};
 use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, Manager, Runtime};
@@ -23,10 +22,11 @@ pub use breaks::{
 };
 
 use crate::{
+    config::RuntimeSettings,
     platform,
     scheduler::state::AppState,
     scheduler::transitions::schedule_next_locked,
-    scheduler::util::{bool_from_settings, bool_setting, break_frequency_seconds, now_ms},
+    scheduler::util::{bool_setting, break_frequency_seconds, now_ms},
 };
 
 #[derive(Clone, Serialize)]
@@ -60,13 +60,13 @@ pub fn reset_schedule<R: Runtime>(app: &AppHandle<R>) {
     let enabled = bool_setting(app, "breaksEnabled", true);
     let frequency = break_frequency_seconds(app);
     let state = app.state::<AppState>();
+    state.idle.lock().forget_lock();
     let mut scheduler = state.scheduler.lock();
     let pending_work_seconds = std::mem::take(&mut scheduler.pending_work_seconds);
     scheduler.having_break = false;
     scheduler.break_time_ms = None;
     scheduler.postponed_count = 0;
     scheduler.idle_start_at_ms = None;
-    scheduler.lock_start_at_ms = None;
     scheduler.pending_break_due = false;
     scheduler.started_from_tray = false;
     scheduler.break_started_at = None;
@@ -122,15 +122,20 @@ pub fn time_since_last_break_seconds<R: Runtime>(app: &AppHandle<R>) -> Option<i
 }
 
 pub fn runtime_status<R: Runtime>(app: &AppHandle<R>) -> RuntimeStatus {
+    runtime_status_with(app, app.state::<AppState>().runtime_settings())
+}
+
+/// Builds the status from an already-projected settings snapshot, so the 1 Hz
+/// tick and tray refresh share one projection instead of each rebuilding it.
+pub(crate) fn runtime_status_with<R: Runtime>(
+    app: &AppHandle<R>,
+    settings: RuntimeSettings,
+) -> RuntimeStatus {
     let now = now_ms();
     let state = app.state::<AppState>();
-    let (settings, stats) = {
-        let config = state.config.lock();
-        (config.settings.clone(), config.daily_stats.clone())
-    };
     // Present a fresh zeroed day after midnight even before the next write
     // rolls the persisted stats over.
-    let mut today = state::today_stats_snapshot(&stats);
+    let mut today = state::today_stats_snapshot(&state.config.lock().daily_stats);
     let scheduler = state.scheduler.lock();
     if let Some(stats) = today.as_object_mut() {
         let worked = stats
@@ -144,14 +149,12 @@ pub fn runtime_status<R: Runtime>(app: &AppHandle<R>) -> RuntimeStatus {
         .get("completedBreaks")
         .and_then(Value::as_i64)
         .unwrap_or(0);
-    let frequency = util::integer_from_settings(&settings, "breakFrequencySeconds", 1_680).max(60);
-    let daily_goal = ((8 * 60 * 60) / frequency).clamp(4, 16);
+    let daily_goal = ((8 * 60 * 60) / settings.break_frequency_seconds.max(60)).clamp(4, 16);
     RuntimeStatus {
-        breaks_enabled: bool_from_settings(&settings, "breaksEnabled", true),
+        breaks_enabled: settings.breaks_enabled,
         having_break: scheduler.having_break,
         idle: scheduler.currently_idle,
-        outside_working_hours: bool_from_settings(&settings, "workingHoursEnabled", true)
-            && !is_within_working_hours(&settings),
+        outside_working_hours: settings.outside_working_hours(),
         seconds_to_next_break: scheduler
             .break_time_ms
             .map(|time| (time - now).max(0) / 1_000),
@@ -160,42 +163,4 @@ pub fn runtime_status<R: Runtime>(app: &AppHandle<R>) -> RuntimeStatus {
         focus_stars: ((completed as f64 * 5.0 / daily_goal as f64).round() as i64).clamp(0, 5),
         progress_percent: (completed * 100 / daily_goal).clamp(0, 100),
     }
-}
-
-pub(crate) fn is_within_working_hours(settings: &Value) -> bool {
-    if !bool_from_settings(settings, "workingHoursEnabled", true) {
-        return true;
-    }
-    let day_key = match chrono::Local::now().weekday() {
-        chrono::Weekday::Mon => "workingHoursMonday",
-        chrono::Weekday::Tue => "workingHoursTuesday",
-        chrono::Weekday::Wed => "workingHoursWednesday",
-        chrono::Weekday::Thu => "workingHoursThursday",
-        chrono::Weekday::Fri => "workingHoursFriday",
-        chrono::Weekday::Sat => "workingHoursSaturday",
-        chrono::Weekday::Sun => "workingHoursSunday",
-    };
-    let Some(day) = settings.get(day_key) else {
-        return true;
-    };
-    if !day.get("enabled").and_then(Value::as_bool).unwrap_or(true) {
-        return false;
-    }
-    let now = chrono::Local::now();
-    let minutes = i64::from(now.hour() * 60 + now.minute());
-    day.get("ranges")
-        .and_then(Value::as_array)
-        .is_none_or(|ranges| {
-            ranges.iter().any(|range| {
-                let from = range
-                    .get("fromMinutes")
-                    .and_then(Value::as_i64)
-                    .unwrap_or(0);
-                let to = range
-                    .get("toMinutes")
-                    .and_then(Value::as_i64)
-                    .unwrap_or(1_439);
-                minutes >= from && minutes <= to
-            })
-        })
 }

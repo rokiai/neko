@@ -20,7 +20,8 @@ export const nekoTheme: ThemeConfig = {
     colorTextTertiary: '#8AA092',
     borderRadius: 14,
     borderRadiusLG: 20,
-    fontFamily: '"Nunito", "Noto Sans SC", "Segoe UI", sans-serif',
+    // Single source of truth: the stack lives in main.css `--neko-sans`.
+    fontFamily: 'var(--neko-sans)',
     fontSize: 14,
     controlHeight: 38,
     boxShadow: '0 10px 30px rgba(55, 96, 78, 0.08)',

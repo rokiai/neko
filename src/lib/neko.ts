@@ -74,6 +74,7 @@ const tauriApi: NekoApi = {
   dismissAutoLaunchOnboarding: () => invoke<void>('autolaunch_onboarding_dismiss'),
   onBreakStart: (listener) => subscribe<number>('neko://break/start', listener),
   onBreakEnd: (listener) => subscribe<void>('neko://break/end', listener),
+  onRuntimeStatus: (listener) => subscribe<RuntimeStatus>('neko://runtime/status', listener),
   platform: tauriPlatform()
 }
 
@@ -121,6 +122,7 @@ const browserApi: NekoApi = {
   dismissAutoLaunchOnboarding: async () => undefined,
   onBreakStart: () => () => undefined,
   onBreakEnd: () => () => undefined,
+  onRuntimeStatus: () => () => undefined,
   platform: tauriPlatform()
 }
 

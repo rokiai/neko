@@ -42,9 +42,9 @@ pub(crate) fn play_sound<R: Runtime>(
     }
     let path = sound_resource_path(app, &sound_type, phase)?;
     let volume = volume.unwrap_or(1.0);
-    let mut audio = state.audio.lock();
-    let player = audio.as_mut().ok_or("audio device is unavailable")?;
-    player
+    state
+        .audio
+        .lock()
         .play(&path, volume)
         .map_err(|error| error.to_string())
 }

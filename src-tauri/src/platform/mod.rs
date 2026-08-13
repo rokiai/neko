@@ -1,6 +1,6 @@
-use tauri::{AppHandle, Manager, Runtime, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
-use crate::{scheduler, scheduler::state::AppState};
+use crate::{config::RuntimeSettings, scheduler, scheduler::state::AppState};
 
 mod dock;
 #[cfg(target_os = "macos")]
@@ -10,6 +10,7 @@ mod tray;
 mod windows_desktops;
 
 use dock::{settings_is_visible, sync_macos_dock};
+pub(crate) use tray::refresh_tray_with;
 pub use tray::{init_tray, refresh_tray};
 
 const BREAK_LABEL_PREFIX: &str = "break-";
@@ -29,6 +30,28 @@ pub fn show_settings<R: Runtime>(app: &AppHandle<R>) {
         }
         let _ = window.set_focus();
         sync_macos_dock(app, true);
+        // Nothing was pushed while the window was hidden, so seed it now
+        // instead of leaving stale numbers on screen until the next tick.
+        push_runtime_status(app, app.state::<AppState>().runtime_settings());
+    }
+}
+
+/// Pushes the runtime status to the Settings window while it is on screen.
+///
+/// Closing Settings hides the window instead of destroying it, so its webview
+/// and React tree stay alive. Gating the push here — rather than letting the
+/// frontend poll — means a hidden window costs nothing: no IPC round trip, no
+/// status rebuild, no re-render.
+pub(crate) fn push_runtime_status<R: Runtime>(app: &AppHandle<R>, settings: RuntimeSettings) {
+    if !settings_is_visible(app) {
+        return;
+    }
+    let Some(window) = app.get_webview_window("settings") else {
+        return;
+    };
+    let status = scheduler::runtime_status_with(app, settings);
+    if let Err(error) = window.emit("neko://runtime/status", status) {
+        tracing::warn!("could not push runtime status: {error}");
     }
 }
 

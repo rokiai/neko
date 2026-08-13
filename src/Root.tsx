@@ -1,31 +1,21 @@
-import { ConfigProvider, App as AntApp } from 'antd'
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { resolveAppLocale, type AppLocale, type LocalePreference } from '@shared/i18n'
-import { nekoTheme } from './theme/neko-theme'
 import { I18nProvider } from './i18n/I18nProvider'
-import { useI18n } from './i18n/use-i18n'
-import { antdLocale } from './i18n/antd-locale'
 import { BreakPage } from './pages/break/BreakPage'
-import { SettingsPage } from './pages/settings/SettingsPage'
 import { getNekoApi } from './lib/neko'
+
+// Break windows are created on demand and must appear immediately, so
+// `BreakPage` stays in the entry chunk. Everything antd — providers, locales,
+// theme, the whole form surface — is reachable only through `SettingsRoot`, so
+// a Break window never downloads or parses any of it.
+const SettingsRoot = lazy(async () => ({
+  default: (await import('./pages/settings/SettingsRoot')).SettingsRoot
+}))
 
 function resolvePage(): 'settings' | 'break' {
   const page = new URLSearchParams(window.location.search).get('page')
   if (page === 'break') return page
   return 'settings'
-}
-
-function LocaleShell({ children }: { children: ReactNode }): React.JSX.Element {
-  const { locale } = useI18n()
-  return (
-    <ConfigProvider
-      theme={nekoTheme}
-      locale={antdLocale(locale)}
-      getPopupContainer={() => document.body}
-    >
-      <AntApp>{children}</AntApp>
-    </ConfigProvider>
-  )
 }
 
 export function Root(): React.JSX.Element {
@@ -47,13 +37,13 @@ export function Root(): React.JSX.Element {
 
   return (
     <I18nProvider locale={locale}>
-      <LocaleShell>
-        {page === 'break' ? (
-          <BreakPage />
-        ) : (
-          <SettingsPage onLocalePreferenceChange={handleLocalePreference} />
-        )}
-      </LocaleShell>
+      {page === 'break' ? (
+        <BreakPage />
+      ) : (
+        <Suspense fallback={null}>
+          <SettingsRoot onLocalePreferenceChange={handleLocalePreference} />
+        </Suspense>
+      )}
     </I18nProvider>
   )
 }

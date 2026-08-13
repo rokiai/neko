@@ -74,13 +74,15 @@ pub(crate) fn apply(scheduler: &mut SchedulerState, input: &TickInput) -> TickOu
         .map(|last_tick| (now - last_tick).unsigned_abs() as i64 / 1_000)
         .unwrap_or(0);
     let break_was_overdue = scheduler.break_time_ms.is_some_and(|time| now > time);
+    // While locked, `idle_status.lock_start_at_ms` is the live lock anchor, so
+    // the state machine never has to reach into the probe's own state.
     if idle_status.locked
-        && scheduler
+        && idle_status
             .lock_start_at_ms
             .is_some_and(|start| now.saturating_sub(start) > frequency * 1_000)
     {
         if scheduler.idle_start_at_ms.is_none() {
-            scheduler.idle_start_at_ms = scheduler.lock_start_at_ms;
+            scheduler.idle_start_at_ms = idle_status.lock_start_at_ms;
         }
         if !break_was_overdue {
             scheduler.break_time_ms = None;
@@ -176,7 +178,6 @@ mod tests {
             postponed_count: 2,
             break_time_ms: Some(900_000),
             last_tick_at_ms: Some(99_000),
-            lock_start_at_ms: Some(100_000),
             ..SchedulerState::default()
         };
         let locked = IdleStatus {
@@ -188,8 +189,7 @@ mod tests {
         assert!(!outcome.trigger_break);
 
         // Unlocked below the threshold: idle::evaluate suppresses the lock
-        // anchor, so nothing may reset.
-        scheduler.lock_start_at_ms = None;
+        // anchor, so the status carries none and nothing may reset.
         let outcome = apply(&mut scheduler, &input(106_000, active()));
         assert_eq!(outcome.idle_reset_minutes, None);
         assert_eq!(scheduler.last_completed_at_ms, Some(1_000));

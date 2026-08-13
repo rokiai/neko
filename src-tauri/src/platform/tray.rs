@@ -6,15 +6,16 @@
 
 use chrono::TimeZone;
 use parking_lot::Mutex;
-#[cfg(target_os = "macos")]
-use serde_json::Value;
 use tauri::{
     AppHandle, Manager, Runtime,
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent},
 };
 
+#[cfg(target_os = "macos")]
+use crate::config::TrayTextMode;
 use crate::{
+    config::RuntimeSettings,
     core::i18n::{self, Locale, Text},
     platform::show_settings,
     scheduler::{self, RuntimeStatus, state::AppState},
@@ -24,11 +25,23 @@ const TRAY_ID: &str = "neko-tray";
 
 /// Rendered content of the menu currently installed on the tray.
 static MENU_SIGNATURE: Mutex<String> = Mutex::new(String::new());
+/// Values last written to the tray. The tick refreshes once a second, but the
+/// rendered text usually does not change, and every write crosses into the
+/// platform's menu-bar API.
+static LAST_TOOLTIP: Mutex<String> = Mutex::new(String::new());
+#[cfg(target_os = "macos")]
+static LAST_TITLE: Mutex<String> = Mutex::new(String::new());
 
 pub fn init_tray<R: Runtime>(app: &AppHandle<R>) -> Result<TrayIcon<R>, String> {
-    let snapshot = TraySnapshot::collect(app);
+    let settings = app.state::<AppState>().runtime_settings();
+    let snapshot = TraySnapshot::collect(app, settings);
     let menu = build_tray_menu(app, &snapshot)?;
     *MENU_SIGNATURE.lock() = snapshot.menu_signature();
+    *LAST_TOOLTIP.lock() = snapshot.tooltip();
+    #[cfg(target_os = "macos")]
+    {
+        *LAST_TITLE.lock() = snapshot.title();
+    }
 
     let mut builder = TrayIconBuilder::with_id(TRAY_ID)
         .menu(&menu)
@@ -66,14 +79,35 @@ pub fn init_tray<R: Runtime>(app: &AppHandle<R>) -> Result<TrayIcon<R>, String> 
         .map_err(|error| format!("create tray: {error}"))
 }
 
+/// Refreshes from a freshly projected snapshot. For cold paths (break
+/// lifecycle, settings changes) where no projection is at hand.
 pub fn refresh_tray<R: Runtime>(app: &AppHandle<R>) {
+    let settings = app.state::<AppState>().runtime_settings();
+    refresh_tray_with(app, settings);
+}
+
+/// Refreshes reusing the caller's projection — used by the 1 Hz tick.
+pub(crate) fn refresh_tray_with<R: Runtime>(app: &AppHandle<R>, settings: RuntimeSettings) {
     let Some(tray) = app.tray_by_id(TRAY_ID) else {
         return;
     };
-    let snapshot = TraySnapshot::collect(app);
-    let _ = tray.set_tooltip(Some(snapshot.tooltip()));
+    let snapshot = TraySnapshot::collect(app, settings);
+
+    let tooltip = snapshot.tooltip();
+    {
+        let mut last = LAST_TOOLTIP.lock();
+        if *last != tooltip && tray.set_tooltip(Some(&tooltip)).is_ok() {
+            *last = tooltip;
+        }
+    }
     #[cfg(target_os = "macos")]
-    let _ = tray.set_title(Some(snapshot.title()));
+    {
+        let title = snapshot.title();
+        let mut last = LAST_TITLE.lock();
+        if *last != title && tray.set_title(Some(&title)).is_ok() {
+            *last = title;
+        }
+    }
 
     let signature = snapshot.menu_signature();
     if *MENU_SIGNATURE.lock() == signature {
@@ -108,14 +142,10 @@ struct TraySnapshot {
 }
 
 impl TraySnapshot {
-    fn collect<R: Runtime>(app: &AppHandle<R>) -> Self {
-        let status = scheduler::runtime_status(app);
-        let state = app.state::<AppState>();
-        let (settings, disable_end_time) = {
-            let config = state.config.lock();
-            (config.settings.clone(), config.disable_end_time)
-        };
-        let locale = i18n::resolve(&settings);
+    fn collect<R: Runtime>(app: &AppHandle<R>, settings: RuntimeSettings) -> Self {
+        let status = scheduler::runtime_status_with(app, settings);
+        let disable_end_time = app.state::<AppState>().config.lock().disable_end_time;
+        let locale = settings.locale;
         Self {
             locale,
             breaks_enabled: status.breaks_enabled,
@@ -123,7 +153,7 @@ impl TraySnapshot {
             fine_status: status_line(locale, &status, disable_end_time, false),
             coarse_status: status_line(locale, &status, disable_end_time, true),
             #[cfg(target_os = "macos")]
-            macos_title: macos_title(app, &status, &settings),
+            macos_title: macos_title(app, &status, settings),
         }
     }
 
@@ -173,23 +203,19 @@ fn status_line(
 }
 
 #[cfg(target_os = "macos")]
-fn macos_title<R: Runtime>(app: &AppHandle<R>, status: &RuntimeStatus, settings: &Value) -> String {
-    if !settings
-        .get("trayTextEnabled")
-        .and_then(Value::as_bool)
-        .unwrap_or(false)
-    {
+fn macos_title<R: Runtime>(
+    app: &AppHandle<R>,
+    status: &RuntimeStatus,
+    settings: RuntimeSettings,
+) -> String {
+    if !settings.tray_text_enabled {
         return String::new();
     }
     if !status.breaks_enabled || status.having_break || status.idle || status.outside_working_hours
     {
         return String::new();
     }
-    let mode = settings
-        .get("trayTextMode")
-        .and_then(Value::as_str)
-        .unwrap_or("TIME_TO_NEXT_BREAK");
-    if mode == "TIME_SINCE_LAST_BREAK" {
+    if settings.tray_text_mode == TrayTextMode::TimeSinceLastBreak {
         return scheduler::time_since_last_break_seconds(app)
             .map(format_duration)
             .unwrap_or_default();

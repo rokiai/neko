@@ -5,13 +5,15 @@
 //! plain idle detection is turned off (see `monitors::idle`).
 
 #[cfg(target_os = "macos")]
-pub fn is_screen_locked() -> bool {
+mod macos {
     use std::ffi::c_void;
+    use std::sync::LazyLock;
 
-    type CFTypeRef = *const c_void;
+    pub(super) type CFTypeRef = *const c_void;
+
     #[link(name = "CoreGraphics", kind = "framework")]
     unsafe extern "C" {
-        fn CGSessionCopyCurrentDictionary() -> CFTypeRef;
+        pub(super) fn CGSessionCopyCurrentDictionary() -> CFTypeRef;
     }
     #[link(name = "CoreFoundation", kind = "framework")]
     unsafe extern "C" {
@@ -20,29 +22,56 @@ pub fn is_screen_locked() -> bool {
             c_str: *const i8,
             encoding: u32,
         ) -> CFTypeRef;
-        fn CFDictionaryGetValue(dictionary: CFTypeRef, key: CFTypeRef) -> CFTypeRef;
-        fn CFBooleanGetValue(value: CFTypeRef) -> u8;
-        fn CFRelease(value: CFTypeRef);
+        pub(super) fn CFDictionaryGetValue(dictionary: CFTypeRef, key: CFTypeRef) -> CFTypeRef;
+        pub(super) fn CFBooleanGetValue(value: CFTypeRef) -> u8;
+        pub(super) fn CFRelease(value: CFTypeRef);
     }
 
+    struct LockedKey(CFTypeRef);
+
+    // SAFETY: an immutable CFString is safe to read from any thread. This one
+    // is created once and intentionally never released, so the pointer stays
+    // valid for the life of the process.
+    unsafe impl Send for LockedKey {}
+    unsafe impl Sync for LockedKey {}
+
+    /// Created once instead of on every probe: the lock state is polled every
+    /// second for as long as the app runs.
+    static LOCKED_KEY: LazyLock<LockedKey> = LazyLock::new(|| {
+        const KEY: &[u8] = b"CGSSessionScreenIsLocked\0";
+        const K_CF_STRING_ENCODING_UTF8: u32 = 0x0800_0100;
+        LockedKey(unsafe {
+            CFStringCreateWithCString(
+                std::ptr::null(),
+                KEY.as_ptr().cast(),
+                K_CF_STRING_ENCODING_UTF8,
+            )
+        })
+    });
+
+    pub(super) fn locked_key() -> CFTypeRef {
+        LOCKED_KEY.0
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub fn is_screen_locked() -> bool {
+    use macos::{
+        CFBooleanGetValue, CFDictionaryGetValue, CFRelease, CGSessionCopyCurrentDictionary,
+        locked_key,
+    };
+
+    let key = locked_key();
+    if key.is_null() {
+        return false;
+    }
     let dictionary = unsafe { CGSessionCopyCurrentDictionary() };
     if dictionary.is_null() {
         return false;
     }
-    let key_name = b"CGSSessionScreenIsLocked\0";
-    let key = unsafe {
-        CFStringCreateWithCString(std::ptr::null(), key_name.as_ptr().cast(), 0x0800_0100)
-    };
-    if key.is_null() {
-        unsafe { CFRelease(dictionary) };
-        return false;
-    }
     let value = unsafe { CFDictionaryGetValue(dictionary, key) };
     let locked = !value.is_null() && unsafe { CFBooleanGetValue(value) != 0 };
-    unsafe {
-        CFRelease(key);
-        CFRelease(dictionary);
-    }
+    unsafe { CFRelease(dictionary) };
     locked
 }
 

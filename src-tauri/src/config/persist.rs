@@ -12,14 +12,28 @@ use chrono::Local;
 
 use super::StoredConfig;
 
-pub fn save(path: &Path, config: &StoredConfig) -> Result<()> {
+/// Serializes the config. Cheap and lock-friendly: callers may run this while
+/// holding the config lock, then release it before calling [`write`].
+pub fn serialize(config: &StoredConfig) -> Result<Vec<u8>> {
+    serde_json::to_vec_pretty(config).context("serialize configuration")
+}
+
+/// Atomically replaces the config file.
+///
+/// This fsyncs, so it can block for milliseconds. Never call it while holding
+/// the config lock — the 1 Hz tick and every settings IPC command need it.
+pub fn write(path: &Path, data: &[u8]) -> Result<()> {
     let parent = path.parent().context("configuration path has no parent")?;
     fs::create_dir_all(parent).context("create config directory")?;
-    let data = serde_json::to_vec_pretty(config).context("serialize configuration")?;
     let temporary = path.with_extension("json.tmp");
-    write_temporary_config(&temporary, &data)?;
+    write_temporary_config(&temporary, data)?;
     replace_config_file(&temporary, path)?;
     Ok(())
+}
+
+/// Serialize-then-write for cold paths (startup, migration) that hold no lock.
+pub fn save(path: &Path, config: &StoredConfig) -> Result<()> {
+    write(path, &serialize(config)?)
 }
 
 fn write_temporary_config(path: &Path, data: &[u8]) -> Result<()> {

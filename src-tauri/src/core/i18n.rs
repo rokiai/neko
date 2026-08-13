@@ -24,15 +24,25 @@ pub fn resolve(settings: &Value) -> Locale {
     }
 }
 
+/// Resolved once per process.
+///
+/// This is read on every tray refresh, i.e. once a second, and the query is an
+/// OS call plus two string allocations. Caching also matches the renderer,
+/// which resolves the system locale a single time at startup — so a mid-session
+/// language change now needs a restart on both sides instead of leaving the
+/// tray and the UI disagreeing.
 fn system_locale() -> Locale {
-    let tag = sys_locale::get_locale().unwrap_or_default().to_lowercase();
-    if tag.starts_with("zh") {
-        Locale::Zh
-    } else if tag.starts_with("ja") {
-        Locale::Ja
-    } else {
-        Locale::En
-    }
+    static CACHED: std::sync::OnceLock<Locale> = std::sync::OnceLock::new();
+    *CACHED.get_or_init(|| {
+        let tag = sys_locale::get_locale().unwrap_or_default().to_lowercase();
+        if tag.starts_with("zh") {
+            Locale::Zh
+        } else if tag.starts_with("ja") {
+            Locale::Ja
+        } else {
+            Locale::En
+        }
+    })
 }
 
 #[derive(Clone, Copy, Debug)]

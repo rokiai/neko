@@ -1,7 +1,7 @@
 use tauri::Manager;
 use tauri_plugin_autostart::ManagerExt;
 
-use crate::{config::load_or_migrate, core::audio::AudioPlayer, scheduler::state::AppState};
+use crate::{config::load_or_migrate, scheduler::state::AppState};
 
 pub mod cmd;
 pub mod config;
@@ -42,13 +42,7 @@ pub fn run() {
 
             tracing::info!(version = env!("CARGO_PKG_VERSION"), "Neko starting");
             let (config, config_path) = load_or_migrate(app.handle())?;
-            let audio = AudioPlayer::new()
-                .map_err(|error| {
-                    tracing::warn!("audio device unavailable, sound playback disabled: {error}");
-                    error
-                })
-                .ok();
-            app.manage(AppState::new(config, config_path, audio));
+            app.manage(AppState::new(config, config_path));
             if !cfg!(debug_assertions) {
                 let state = app.state::<AppState>();
                 let enabled = state

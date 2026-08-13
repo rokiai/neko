@@ -1,6 +1,6 @@
-import type { RuntimeStatus } from '@shared/stats'
 import { formatClockDuration, formatCountdown } from '@shared/time'
 import { useI18n } from '../../i18n/use-i18n'
+import { useRuntimeStatus } from './use-runtime-status'
 import './today-panel.css'
 
 function Stars({ filled }: { filled: number }): React.JSX.Element {
@@ -47,8 +47,13 @@ function ProgressRing({ percent }: { percent: number }): React.JSX.Element {
   )
 }
 
-export function TodayPanel({ status }: { status: RuntimeStatus }): React.JSX.Element {
+/**
+ * Owns its own status subscription so the once-a-second update re-renders this
+ * panel alone, instead of the whole settings tree (every visited tab included).
+ */
+export function TodayPanel(): React.JSX.Element {
   const { t } = useI18n()
+  const status = useRuntimeStatus()
 
   const countdownLabel = status.havingBreak
     ? t('stats.onBreak')

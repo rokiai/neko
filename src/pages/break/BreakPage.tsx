@@ -78,8 +78,6 @@ export function BreakPage(): React.JSX.Element {
 
   if (!settings || phase === 'boot') return <div className="break-root" />
 
-  const fullscreen = settings.showBackdrop
-
   const style = {
     ['--break-bg' as string]: settings.backgroundColor,
     ['--break-fg' as string]: settings.textColor,
@@ -87,12 +85,7 @@ export function BreakPage(): React.JSX.Element {
   }
 
   return (
-    <div
-      className={`break-root phase-${phase}`}
-      style={style}
-      data-backdrop={fullscreen && phase === 'progress' ? 'on' : 'off'}
-      data-style="card"
-    >
+    <div className={`break-root phase-${phase}`} style={style}>
       {(phase === 'progress' || phase === 'closing') && (isPrimary || sharedEndTime != null) && (
         <BreakProgress
           settings={settings}

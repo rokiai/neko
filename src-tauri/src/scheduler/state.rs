@@ -1,19 +1,26 @@
-use std::{path::PathBuf, time::Instant};
+use std::{path::PathBuf, sync::Arc, time::Instant};
 
 use parking_lot::Mutex;
 use serde_json::{Value, json};
 
 use crate::{
-    config::{StoredConfig, default_daily_stats, save},
+    config::{RuntimeSettings, StoredConfig, default_daily_stats, serialize, write},
     core::audio::AudioPlayer,
+    monitors::idle::IdleProbe,
 };
 
 pub struct AppState {
-    pub config: Mutex<StoredConfig>,
+    /// Shared so a detached save can serialize the latest state off-thread.
+    pub config: Arc<Mutex<StoredConfig>>,
     pub config_path: PathBuf,
-    save_lock: Mutex<()>,
-    pub audio: Mutex<Option<AudioPlayer>>,
+    /// Shared so a detached write can serialize against concurrent saves.
+    save_lock: Arc<Mutex<()>>,
+    /// Opens its output device on first playback, not at startup.
+    pub audio: Mutex<AudioPlayer>,
     pub(crate) scheduler: Mutex<SchedulerState>,
+    /// Separate from `scheduler` on purpose: the OS idle/lock probes must not
+    /// run while the scheduler lock is held.
+    pub(crate) idle: Mutex<IdleProbe>,
 }
 
 pub(crate) struct SchedulerState {
@@ -21,7 +28,6 @@ pub(crate) struct SchedulerState {
     pub having_break: bool,
     pub postponed_count: u32,
     pub idle_start_at_ms: Option<i64>,
-    pub lock_start_at_ms: Option<i64>,
     pub last_tick_at_ms: Option<i64>,
     pub last_completed_at_ms: Option<i64>,
     pub break_started_at: Option<Instant>,
@@ -30,8 +36,6 @@ pub(crate) struct SchedulerState {
     pub pending_break_due: bool,
     pub currently_idle: bool,
     pub was_in_working_hours: bool,
-    pub idle_detection_failures: u8,
-    pub idle_detection_disabled: bool,
     pub preview_active: bool,
     pub preview_relaunch_pending: bool,
     pub active_break_settings: Option<Value>,
@@ -48,7 +52,6 @@ impl Default for SchedulerState {
             having_break: false,
             postponed_count: 0,
             idle_start_at_ms: None,
-            lock_start_at_ms: None,
             last_tick_at_ms: None,
             last_completed_at_ms: None,
             break_started_at: None,
@@ -57,8 +60,6 @@ impl Default for SchedulerState {
             pending_break_due: false,
             currently_idle: false,
             was_in_working_hours: true,
-            idle_detection_failures: 0,
-            idle_detection_disabled: false,
             preview_active: false,
             preview_relaunch_pending: false,
             active_break_settings: None,
@@ -71,19 +72,57 @@ impl Default for SchedulerState {
 }
 
 impl AppState {
-    pub fn new(config: StoredConfig, config_path: PathBuf, audio: Option<AudioPlayer>) -> Self {
+    pub fn new(config: StoredConfig, config_path: PathBuf) -> Self {
         Self {
-            config: Mutex::new(config),
+            config: Arc::new(Mutex::new(config)),
             config_path,
-            save_lock: Mutex::new(()),
-            audio: Mutex::new(audio),
+            save_lock: Arc::new(Mutex::new(())),
+            audio: Mutex::new(AudioPlayer::default()),
             scheduler: Mutex::new(SchedulerState::default()),
+            idle: Mutex::new(IdleProbe::default()),
         }
     }
 
+    /// Serializes under the config lock, then writes with the lock released:
+    /// the write fsyncs, and holding the config lock across it would stall the
+    /// tick and every settings IPC command.
     pub fn save_config(&self) -> anyhow::Result<()> {
+        let data = serialize(&self.config.lock())?;
         let _save_lock = self.save_lock.lock();
-        save(&self.config_path, &self.config.lock())
+        write(&self.config_path, &data)
+    }
+
+    /// Same, but the fsync happens on a blocking worker. Used by the 1 Hz tick
+    /// so disk latency never stalls the scheduler's async task.
+    ///
+    /// Serialization happens inside the worker, after the save lock is taken:
+    /// blocking tasks carry no ordering guarantee, so serializing at submit
+    /// time would let an out-of-order write put stale stats back on disk.
+    /// Serializing here means whichever write runs always persists the latest
+    /// state.
+    pub fn save_config_detached(&self) {
+        let config = Arc::clone(&self.config);
+        let save_lock = Arc::clone(&self.save_lock);
+        let path = self.config_path.clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            let _save_lock = save_lock.lock();
+            let data = match serialize(&config.lock()) {
+                Ok(data) => data,
+                Err(error) => {
+                    tracing::warn!("could not serialize configuration: {error}");
+                    return;
+                }
+            };
+            if let Err(error) = write(&path, &data) {
+                tracing::warn!("could not persist configuration: {error}");
+            }
+        });
+    }
+
+    /// Projects the stored settings into scalars for the 1 Hz paths. Keeps the
+    /// config lock for the projection only, and never clones the JSON.
+    pub fn runtime_settings(&self) -> RuntimeSettings {
+        RuntimeSettings::from_settings(&self.config.lock().settings)
     }
 
     pub fn record_break(&self, duration_ms: u64) -> bool {

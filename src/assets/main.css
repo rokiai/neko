@@ -1,3 +1,22 @@
+/* Self-hosted variable fonts: a desktop app must render identically offline.
+   Latin subsets only — CJK falls back to the platform UI fonts below, which
+   are higher quality than any webfont we could ship and cost nothing. */
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: block;
+  src: url('./fonts/fraunces-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 200 1000;
+  font-display: block;
+  src: url('./fonts/nunito-latin.woff2') format('woff2');
+}
+
 :root {
   color-scheme: light;
   --neko-bg: #eef6f1;
@@ -11,8 +30,10 @@
   --neko-accent-strong: #2f8668;
   --neko-shadow: 0 14px 40px rgba(55, 96, 78, 0.1);
   --neko-shadow-soft: 0 8px 24px rgba(55, 96, 78, 0.07);
-  --neko-serif: 'Fraunces', 'Iowan Old Style', Georgia, serif;
-  --neko-sans: 'Nunito', 'Noto Sans SC', 'Segoe UI', sans-serif;
+  --neko-serif: 'Fraunces', 'Iowan Old Style', Georgia, 'Songti SC', 'Yu Mincho', serif;
+  --neko-sans:
+    'Nunito', 'PingFang SC', 'Hiragino Sans', 'Yu Gothic UI', 'Microsoft YaHei UI',
+    'Noto Sans CJK SC', 'Segoe UI', system-ui, sans-serif;
   --neko-radius: 22px;
   --neko-scroll-size: 8px;
   --neko-scroll-thumb: rgba(63, 159, 126, 0.28);
