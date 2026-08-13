@@ -7,6 +7,8 @@
 > 评审日期：2026-08-13。方法：全量通读 Rust/前端核心代码，逐条对照迁移文档与旧实现语义，运行验证套件。
 >
 > **修复日期：2026-08-13（同日）。N1–N14 全部处理完毕，状态见各条目；本机无法验证的项（Windows 编译、真机锁屏）已在条目内注明。**
+>
+> **第二轮复扫：2026-08-13（同日，commit `b474f8e` 之后）。全量重审代码 + 三平台 cfg 视角推演 + Linux 依赖树分析，新增 N15–N17，均已修复。**
 
 ## 验证快照
 
@@ -21,6 +23,8 @@
 ## 总结论：有争议 → 已治理
 
 架构与社区方案（Tauri 2 官方模板、官方插件、capabilities、三平台 release 矩阵）高度对齐；配置迁移、多屏 Break 窗口、command 契约质量高于社区平均。评审发现 1 个真实调度 bug（N1）、Windows 锁屏能力缺失（N2）、一组 macOS 可感知体验回归（N3–N5）及若干工程治理项，均已修复；Linux 锁屏经核实为 Electron 基线即有的缺口（非回归），已在文档中显式登记。
+
+第二轮复扫（N15–N17）另定位并修复：Linux CI 自迁移起持续红的真实根因（系统库缺失，依赖树证据）、非 macOS 平台的 dead_code 编译阻断、以及一个无声卡环境必现的 Break 卡死（Electron→Tauri 声音语义变化引入，含设置保存失败无反馈等同族问题）。
 
 ---
 
@@ -105,19 +109,42 @@
 
 - **修复记录**：`package.json` 的 `rust:format:check` / `rust:lint` / `rust:test` / `tauri:check` 全部改为 `cd src-tauri && cargo ...`，rustup 按 cwd 正确解析 1.95.0。本机（默认 stable 1.78）验证 `pnpm rust:test` 直接可用。
 
+### N15 [高] Linux CI 自迁移提交起持续红：系统库缺失 + 废弃包名 — [~]
+
+- 位置：`.github/workflows/ci.yml` / `release.yml` 的 apt 依赖列表。
+- 失败场景：`Rust lint`（clippy）是 quality job 里第一个编译整个 Rust 依赖树的步骤，`alsa-sys`（rodio→cpal）的 build script 找不到系统 `alsa.pc` 直接失败。历史 CI 在纯文档提交（fc28682）上同样红，证明失败与提交内容无关、是环境缺陷。
+- 证据：`cargo tree --target x86_64-unknown-linux-gnu` 确认依赖树含 `alsa-sys`（rodio）、`libdbus-sys`（tao 与 user-idle2 两路引入）、`x11`（user-idle2）；GitHub ubuntu runner 不预装 `libasound2-dev`。另 `libappindicator3-dev` 在 Ubuntu 24.04（现 ubuntu-latest）已移除，Tauri 2 官方 prerequisites 为 `libayatana-appindicator3-dev`。
+- **修复记录**：两个 workflow 的 apt 列表补 `libasound2-dev`、`libdbus-1-dev`、`libx11-dev`、`libxss-dev`、`libxdo-dev`，`libappindicator3-dev` 换 `libayatana-appindicator3-dev`（22.04/24.04 均存在），注释登记各库对应的 crate 以便日后增删依赖时同步。
+- 待确认：下次 push 观察 ubuntu quality job（按当前指示暂不看首跑结果）。
+
+### N16 [中] `TraySnapshot.macos_title` 在非 macOS 平台 dead_code，N15 修复后 Linux clippy 仍会挂 — [x]
+
+- 位置：`platform/tray.rs`——`macos_title` 字段只被 `#[cfg(target_os = "macos")]` 的 `title()` 读取；`use serde_json::Value` 只被 `macos_title()` 签名使用。
+- 失败场景：Linux/Windows 视角下字段 "never read" + unused import；ubuntu quality job 的 `clippy -- -D warnings` 将在 N15 修复后走到这里再次编译失败（本地 macOS clippy 看不到该视角，此前一直漏检）。
+- **修复记录**：字段、构造赋值、`macos_title()` 函数、`Value` import 四处统一加 `#[cfg(target_os = "macos")]`；非 macOS 引用点逐一核对无残留。顺带消除 `config/persist.rs` `legacy_paths` 的 `home` 绑定在 Windows 视角的 unused 告警（加 `cfg(not(target_os = "windows"))`）。
+- 验收：macOS 本地 fmt/clippy/test 全绿；Linux/Windows 为 cfg 推演，编译级确认交 CI `platform-check` 与 quality job。
+
+### N17 [高] 声音播放失败阻断 Break 生命周期：无声卡环境 Break 卡死 — [x]
+
+- 位置：`src/pages/break/BreakProgress.tsx`（`playStartSound`/`playEndSound` 位于关键路径 `await` 链）。
+- 失败场景：Rust `sound_*_play` 在音频设备不可用时必然返回 `Err("audio device is unavailable")`（`cmd.rs` 中 `audio.as_mut().ok_or(...)`；`lib.rs` 启动时设备缺失即 `audio = None`）。Electron 基线里声音在渲染进程 `<audio>` 播放、从不阻断流程；迁移后语义变化：① end 声音失败 → `onFinished` 不执行 → `break_end`/`break_tracking_complete` 永不上报，而 Rust 端无 handshake 超时兜底 → 所有 Break 窗口卡在 100% 永不关闭、`having_break` 卡住、后续 Break 不再触发（虚拟机/无声卡台式机 + 默认音效设置下**必现死锁**）；② start 声音失败 → `break_window_ready` 不发 → Break 窗口保持 `visible(false)` 永不显示。
+- **修复记录**：两处声音调用改为 best-effort `try/catch`（`console.warn`），`BreakPage.onReady` 的 `resizeBreakWindow` 同样降级（对齐 Electron send 语义）。
+- 附带修复（同根因——invoke 可拒绝而 UI 无兜底，用户无感知）：`use-settings-draft` 的 `save`/`commit` 失败时 `message.error` 显示具体原因（N7 schema 校验错误、写盘失败均可见），`commit` 改返回 `boolean` 供 onboarding 流程中断；`LookTab` 预览/试听按钮失败 toast；新增 `invokeErrorText` helper（`lib/neko.ts`）与三语 `settings.saveFailed` / `previewFailed` / `soundPreviewFailed` 词条。
+- 验收：ESLint / tsc / vitest 全绿；改动均为失败路径防御，成功路径行为不变。
+
 ---
 
 ## 遗留事项（修复后仍开放）
 
-| 事项                   | 来源         | 说明                                                                                                                                                |
-| ---------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Windows 真机验收       | N2/N8/§16.3  | WTS 锁屏链路、虚拟桌面跟随、多屏 Break；CI check 只保证编译                                                                                         |
-| Linux 真机验收         | §16.3        | X11/Wayland 透明遮罩、appindicator 托盘、菜单签名重建行为                                                                                           |
-| Linux 锁屏检测         | N2           | 基线即缺；如需补齐走 D-Bus（freedesktop/GNOME/login1）三探测，属新能力而非修复                                                                      |
-| CI platform-check 首跑 | N8           | 下次 push 确认矩阵通过                                                                                                                              |
-| macOS 手测一轮         | N3–N6/N12    | 托盘三语菜单与 template 图标观感、Dock 点击恢复、Break 全流程（capabilities 收敛后 event listen 走 core:default，dev 冒烟启动正常，弹出流程待点验） |
-| Notification 模式手测  | 文档阶段 D   | 无 Break 窗、声音、统计一次性验收                                                                                                                   |
-| updater 接入           | 文档阶段 D/E | 未配置 endpoint，生产自动更新保持关闭                                                                                                               |
+| 事项                  | 来源         | 说明                                                                                                                                                |
+| --------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Windows 真机验收      | N2/N8/§16.3  | WTS 锁屏链路、虚拟桌面跟随、多屏 Break；CI check 只保证编译                                                                                         |
+| Linux 真机验收        | §16.3        | X11/Wayland 透明遮罩、appindicator 托盘、菜单签名重建行为                                                                                           |
+| Linux 锁屏检测        | N2           | 基线即缺；如需补齐走 D-Bus（freedesktop/GNOME/login1）三探测，属新能力而非修复                                                                      |
+| CI 三平台首跑         | N8/N15/N16   | 下次 push 确认 ubuntu quality（apt 依赖修复后首次能走完 clippy）与 platform-check 矩阵；当前按指示暂不跟首跑                                        |
+| macOS 手测一轮        | N3–N6/N12    | 托盘三语菜单与 template 图标观感、Dock 点击恢复、Break 全流程（capabilities 收敛后 event listen 走 core:default，dev 冒烟启动正常，弹出流程待点验） |
+| Notification 模式手测 | 文档阶段 D   | 无 Break 窗、声音、统计一次性验收                                                                                                                   |
+| updater 接入          | 文档阶段 D/E | 未配置 endpoint，生产自动更新保持关闭                                                                                                               |
 
 ## 已确认无需处理（勿当作问题反复触碰）
 

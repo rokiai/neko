@@ -46,7 +46,13 @@ export function BreakProgress({
     void (async () => {
       const readyEndTime = await onReady()
       if (isPrimary) {
-        await neko.playStartSound(settings.soundType, settings.breakSoundVolume)
+        // Sound is best-effort: a missing audio device must not stall the
+        // ready handshake that makes the Break window visible.
+        try {
+          await neko.playStartSound(settings.soundType, settings.breakSoundVolume)
+        } catch (error) {
+          console.warn('[neko] failed to play Break start sound', error)
+        }
       }
       if (finished.current) return
       if (readyEndTime != null) setLocalEndTime(readyEndTime)
@@ -77,7 +83,13 @@ export function BreakProgress({
       finished.current = true
       void (async () => {
         if (isPrimary) {
-          await neko.playEndSound(settings.soundType, settings.breakSoundVolume)
+          // Sound is best-effort: a failure must not block onFinished, which
+          // reports the Break end and lets every Break window close.
+          try {
+            await neko.playEndSound(settings.soundType, settings.breakSoundVolume)
+          } catch (error) {
+            console.warn('[neko] failed to play Break end sound', error)
+          }
         }
         await onFinished(now - startedAt.current)
       })()

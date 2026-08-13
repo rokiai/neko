@@ -85,6 +85,7 @@ pub(super) fn backup_legacy(path: &PathBuf) -> Result<()> {
 
 pub(super) fn legacy_paths() -> Vec<PathBuf> {
     let mut paths = Vec::new();
+    #[cfg(not(target_os = "windows"))]
     let home = env::var_os("HOME").map(PathBuf::from);
 
     #[cfg(target_os = "macos")]

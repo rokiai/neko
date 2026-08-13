@@ -30,6 +30,9 @@ export const ja: Messages = {
 
   'settings.saved': '設定を保存しました',
   'settings.loadFailed': '設定の読み込みに失敗しました',
+  'settings.saveFailed': '設定の保存に失敗しました',
+  'settings.previewFailed': '休憩プレビューを開けませんでした',
+  'settings.soundPreviewFailed': 'サウンドを再生できませんでした',
   'settings.bridgeBrowser':
     'ブラウザで Vite の URL を開かないでください。`pnpm dev` を実行し、Neko ウィンドウまたはトレイから設定を開いてください。',
   'settings.tab.today': '今日の状態',

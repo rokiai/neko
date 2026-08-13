@@ -1,8 +1,19 @@
-import { Button, ColorPicker, Divider, Form, Select, Slider, Space, Switch, Typography } from 'antd'
+import {
+  App,
+  Button,
+  ColorPicker,
+  Divider,
+  Form,
+  Select,
+  Slider,
+  Space,
+  Switch,
+  Typography
+} from 'antd'
 import { resolveBreakMessage, resolveBreakTitle } from '@shared/break-copy'
 import { DEFAULT_SETTINGS, SOUND_TYPES, SoundType, type Settings } from '@shared/settings'
 import { useI18n } from '../../../i18n/use-i18n'
-import { getNekoApi } from '../../../lib/neko'
+import { getNekoApi, invokeErrorText } from '../../../lib/neko'
 import { SOUND_LABEL_KEY } from '../settings-labels'
 import type { SettingsPatch } from '../use-settings-draft'
 
@@ -16,6 +27,7 @@ export function LookTab({
   patch: SettingsPatch
 }): React.JSX.Element {
   const { t } = useI18n()
+  const { message } = App.useApp()
 
   return (
     <div className="settings-panel">
@@ -101,7 +113,11 @@ export function LookTab({
           <Button
             type="primary"
             onClick={() => {
-              void getNekoApi().previewBreak(draft)
+              void getNekoApi()
+                .previewBreak(draft)
+                .catch((error: unknown) => {
+                  message.error(invokeErrorText(error, t('settings.previewFailed')))
+                })
             }}
           >
             {t('settings.previewBreak')}
@@ -130,9 +146,13 @@ export function LookTab({
               />
               <Button
                 disabled={draft.soundType === SoundType.None}
-                onClick={() =>
-                  void getNekoApi().playStartSound(draft.soundType, draft.breakSoundVolume)
-                }
+                onClick={() => {
+                  void getNekoApi()
+                    .playStartSound(draft.soundType, draft.breakSoundVolume)
+                    .catch((error: unknown) => {
+                      message.error(invokeErrorText(error, t('settings.soundPreviewFailed')))
+                    })
+                }}
               >
                 {t('common.preview')}
               </Button>

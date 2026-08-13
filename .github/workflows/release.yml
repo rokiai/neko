@@ -58,14 +58,21 @@ jobs:
           toolchain: 1.95.0
           components: rustfmt, clippy
 
+      # Keep in sync with ci.yml: alsa (rodio), dbus (tao + user-idle2),
+      # x11/xss (user-idle2 idle query).
       - name: Install Linux build dependencies
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y \
             libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
+            libayatana-appindicator3-dev \
             librsvg2-dev \
+            libasound2-dev \
+            libdbus-1-dev \
+            libx11-dev \
+            libxss-dev \
+            libxdo-dev \
             patchelf
 
       - name: Cache Rust

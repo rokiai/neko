@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { LocalePreference } from '@shared/i18n'
 import { DEFAULT_SETTINGS, type Settings } from '@shared/settings'
 import { useI18n } from '../../i18n/use-i18n'
-import { getNekoApi, isTauriRuntime } from '../../lib/neko'
+import { getNekoApi, invokeErrorText, isTauriRuntime } from '../../lib/neko'
 
 export type SettingsPatch = <K extends keyof Settings>(key: K, value: Settings[K]) => void
 
@@ -18,7 +18,8 @@ export function useSettingsDraft(
   appVersion: string
   patch: SettingsPatch
   save: () => Promise<void>
-  commit: (partial: Partial<Settings>) => Promise<void>
+  /** Persists draft + partial. Resolves false when saving failed. */
+  commit: (partial: Partial<Settings>) => Promise<boolean>
   reset: () => void
 } {
   const { message } = App.useApp()
@@ -83,18 +84,29 @@ export function useSettingsDraft(
   }
 
   const save = async (): Promise<void> => {
-    await getNekoApi().setSettings(draft)
+    try {
+      await getNekoApi().setSettings(draft)
+    } catch (error: unknown) {
+      message.error(invokeErrorText(error, t('settings.saveFailed')))
+      return
+    }
     setSaved(draft)
     message.success(t('settings.saved'))
   }
 
-  const commit = async (partial: Partial<Settings>): Promise<void> => {
+  const commit = async (partial: Partial<Settings>): Promise<boolean> => {
     const next = { ...draft, ...partial }
-    await getNekoApi().setSettings(next)
+    try {
+      await getNekoApi().setSettings(next)
+    } catch (error: unknown) {
+      message.error(invokeErrorText(error, t('settings.saveFailed')))
+      return false
+    }
     setDraft(next)
     setSaved(next)
     if (partial.locale != null) onLocalePreferenceChange(partial.locale)
     message.success(t('settings.saved'))
+    return true
   }
 
   const reset = (): void => {

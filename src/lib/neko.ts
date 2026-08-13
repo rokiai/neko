@@ -17,6 +17,16 @@ export function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && window.__TAURI_INTERNALS__ != null
 }
 
+/**
+ * Human-readable text for a failed `invoke`: Tauri command errors reject with
+ * plain strings, JS-side failures with `Error`s.
+ */
+export function invokeErrorText(error: unknown, fallback: string): string {
+  if (typeof error === 'string' && error.length > 0) return `${fallback}: ${error}`
+  if (error instanceof Error && error.message) return `${fallback}: ${error.message}`
+  return fallback
+}
+
 function subscribe<T>(event: string, listener: (payload: T) => void): () => void {
   let active = true
   let unlisten: UnlistenFn | null = null

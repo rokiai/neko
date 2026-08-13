@@ -1,5 +1,7 @@
 out
 dist
+src-tauri/gen
+src-tauri/target
 pnpm-lock.yaml
 LICENSE.md
 tsconfig.json

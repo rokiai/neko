@@ -29,6 +29,9 @@ export const zh: Messages = {
 
   'settings.saved': '设置已保存',
   'settings.loadFailed': '加载设置失败',
+  'settings.saveFailed': '保存设置失败',
+  'settings.previewFailed': '打开休息预览失败',
+  'settings.soundPreviewFailed': '播放音效失败',
   'settings.bridgeBrowser':
     '请不要在浏览器中打开 Vite 地址。运行 `pnpm dev`，使用 Neko 窗口或托盘中的设置。',
   'settings.tab.today': '今日状态',

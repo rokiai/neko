@@ -6,6 +6,7 @@
 
 use chrono::TimeZone;
 use parking_lot::Mutex;
+#[cfg(target_os = "macos")]
 use serde_json::Value;
 use tauri::{
     AppHandle, Manager, Runtime,
@@ -102,6 +103,7 @@ struct TraySnapshot {
     fine_status: String,
     /// Minute precision, for the status line inside the menu.
     coarse_status: String,
+    #[cfg(target_os = "macos")]
     macos_title: String,
 }
 
@@ -120,6 +122,7 @@ impl TraySnapshot {
             start_enabled: status.breaks_enabled && !status.having_break,
             fine_status: status_line(locale, &status, disable_end_time, false),
             coarse_status: status_line(locale, &status, disable_end_time, true),
+            #[cfg(target_os = "macos")]
             macos_title: macos_title(app, &status, &settings),
         }
     }
@@ -169,6 +172,7 @@ fn status_line(
     )
 }
 
+#[cfg(target_os = "macos")]
 fn macos_title<R: Runtime>(app: &AppHandle<R>, status: &RuntimeStatus, settings: &Value) -> String {
     if !settings
         .get("trayTextEnabled")

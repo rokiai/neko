@@ -51,7 +51,7 @@ export function SettingsPage({
   }, [highlightAutoLaunch])
 
   const handleEnableAutoLaunch = async (): Promise<void> => {
-    await commit({ autoLaunch: true })
+    if (!(await commit({ autoLaunch: true }))) return
     await onboarding.dismiss()
     switchTab('system')
     setHighlightAutoLaunch(true)

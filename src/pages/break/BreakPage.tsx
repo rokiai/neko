@@ -100,7 +100,11 @@ export function BreakPage(): React.JSX.Element {
           sharedEndTime={sharedEndTime}
           closing={phase === 'closing'}
           onReady={async () => {
-            await neko.resizeBreakWindow()
+            try {
+              await neko.resizeBreakWindow()
+            } catch (error) {
+              console.warn('[neko] failed to resize Break window', error)
+            }
             if (isPrimary) return neko.startBreak()
             return sharedEndTime ?? neko.getActiveBreakEndTime()
           }}

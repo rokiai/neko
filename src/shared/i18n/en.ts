@@ -28,6 +28,9 @@ export const en = {
 
   'settings.saved': 'Settings saved',
   'settings.loadFailed': 'Failed to load settings',
+  'settings.saveFailed': 'Failed to save settings',
+  'settings.previewFailed': 'Failed to open the break preview',
+  'settings.soundPreviewFailed': 'Failed to play the sound',
   'settings.bridgeBrowser':
     'Do not open the Vite URL in a browser. Run `pnpm dev` and use the Neko window or tray Settings.',
   'settings.tab.today': 'Today',
