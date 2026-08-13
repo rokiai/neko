@@ -188,3 +188,19 @@ fn ensure_today_stats(stats: &mut Value) {
         });
     }
 }
+
+/// Read-only view of today's stats: returns the stored object when its
+/// `dayKey` is still today, otherwise a zeroed day (without persisting it).
+pub(crate) fn today_stats_snapshot(stats: &Value) -> Value {
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    if stats.is_object() && stats.get("dayKey").and_then(Value::as_str) == Some(today.as_str()) {
+        stats.clone()
+    } else {
+        json!({
+            "dayKey": today,
+            "workSeconds": 0,
+            "restSeconds": 0,
+            "completedBreaks": 0
+        })
+    }
+}

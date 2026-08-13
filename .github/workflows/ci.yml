@@ -81,3 +81,32 @@ jobs:
 
       - name: Build (Vite)
         run: pnpm run build
+
+  # Platform-gated Rust code (macos_spaces, windows_desktops, monitors/lock)
+  # must compile on every PR, not only when a release tag builds bundles.
+  platform-check:
+    name: Cargo check (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.95.0
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Cargo check
+        run: cargo check --all-targets
+        working-directory: src-tauri

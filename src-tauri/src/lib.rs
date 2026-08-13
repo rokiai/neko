@@ -9,26 +9,38 @@ pub mod core;
 pub mod monitors;
 pub mod platform;
 pub mod scheduler;
-pub mod utils;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    utils::init_logging();
-
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
+        // single-instance must be first so a second instance exits before
+        // initializing anything else (per plugin docs).
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             platform::show_settings(app);
         }))
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .targets([
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
+                        file_name: Some("neko".into()),
+                    }),
+                ])
+                .level(log::LevelFilter::Info)
+                .level_for("tao", log::LevelFilter::Warn)
+                .level_for("wry", log::LevelFilter::Warn)
+                .build(),
+        )
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
+            tracing::info!(version = env!("CARGO_PKG_VERSION"), "Neko starting");
             let (config, config_path) = load_or_migrate(app.handle())?;
             let audio = AudioPlayer::new()
                 .map_err(|error| {
@@ -83,6 +95,15 @@ pub fn run() {
             cmd::autolaunch_onboarding_seen_get,
             cmd::autolaunch_onboarding_dismiss
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Neko Tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building Neko Tauri application");
+
+    app.run(|_app_handle, _event| {
+        // Dock icon click while the Settings window is minimized/hidden must
+        // bring Settings back (parity with Electron's `activate` handler).
+        #[cfg(target_os = "macos")]
+        if let tauri::RunEvent::Reopen { .. } = _event {
+            platform::show_settings(_app_handle);
+        }
+    });
 }

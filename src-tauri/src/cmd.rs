@@ -5,7 +5,7 @@ use tauri::{AppHandle, Emitter, Manager, Runtime, State, WebviewWindow, path::Ba
 use tauri_plugin_autostart::ManagerExt;
 
 use crate::{
-    config::normalize_settings,
+    config::{normalize_settings, validate_settings},
     platform,
     scheduler::{self, state::AppState},
 };
@@ -61,6 +61,7 @@ pub fn settings_set(
     settings: Value,
 ) -> Result<(), String> {
     let settings = normalize_settings(&settings);
+    validate_settings(&settings)?;
     {
         let mut config = state.config.lock();
         config.settings = settings.clone();
@@ -199,7 +200,9 @@ pub fn break_preview(
     settings: Value,
 ) -> Result<(), String> {
     let _ = state;
-    scheduler::preview_break(&app, normalize_settings(&settings))
+    let settings = normalize_settings(&settings);
+    validate_settings(&settings)?;
+    scheduler::preview_break(&app, settings)
 }
 
 #[tauri::command]

@@ -1,15 +1,20 @@
-use std::{
-    env,
-    fs::{self, File},
-    io::{self, Write},
-    path::{Path, PathBuf},
-};
+//! Stored configuration: schema defaults, normalization, and v1–v5 migration.
+//! Persistence lives in `config::persist`, the typed DTO contract in
+//! `config::schema`.
+
+use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use chrono::Local;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tauri::{AppHandle, Manager, Runtime};
+
+mod persist;
+mod schema;
+
+pub use persist::save;
+pub use schema::validate_settings;
 
 pub const SETTINGS_VERSION: u32 = 5;
 
@@ -145,6 +150,11 @@ impl StoredConfig {
         if !self.daily_stats.is_object() {
             self.daily_stats = default_daily_stats();
         }
+        // Loaded configs are not rejected (per-key fallbacks keep the app
+        // usable), but deviations must be visible instead of silent.
+        if let Err(error) = validate_settings(&self.settings) {
+            tracing::warn!("stored settings deviate from the schema: {error}");
+        }
     }
 }
 
@@ -190,23 +200,23 @@ pub fn config_path<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf> {
 pub fn load_or_migrate<R: Runtime>(app: &AppHandle<R>) -> Result<(StoredConfig, PathBuf)> {
     let path = config_path(app)?;
     if path.exists() {
-        let mut config = read_config(&path)?;
+        let mut config = persist::read_config(&path)?;
         config.normalize();
         save(&path, &config)?;
         return Ok((config, path));
     }
 
-    for legacy_path in legacy_paths() {
+    for legacy_path in persist::legacy_paths() {
         if !legacy_path.exists() {
             continue;
         }
-        match read_config(&legacy_path) {
+        match persist::read_config(&legacy_path) {
             Ok(mut config) => {
                 config.normalize();
                 config.migration_version = Some(1);
                 config.migrated_from = Some(legacy_path.display().to_string());
                 save(&path, &config)?;
-                backup_legacy(&legacy_path)?;
+                persist::backup_legacy(&legacy_path)?;
                 tracing::info!(source = %legacy_path.display(), target = %path.display(), "migrated Electron configuration");
                 return Ok((config, path));
             }
@@ -219,117 +229,6 @@ pub fn load_or_migrate<R: Runtime>(app: &AppHandle<R>) -> Result<(StoredConfig, 
     let config = StoredConfig::default();
     save(&path, &config)?;
     Ok((config, path))
-}
-
-pub fn save(path: &Path, config: &StoredConfig) -> Result<()> {
-    let parent = path.parent().context("configuration path has no parent")?;
-    fs::create_dir_all(parent).context("create config directory")?;
-    let data = serde_json::to_vec_pretty(config).context("serialize configuration")?;
-    let temporary = path.with_extension("json.tmp");
-    write_temporary_config(&temporary, &data)?;
-    replace_config_file(&temporary, path)?;
-    Ok(())
-}
-
-fn write_temporary_config(path: &Path, data: &[u8]) -> Result<()> {
-    let mut file = File::create(path).context("create temporary configuration")?;
-    file.write_all(data)
-        .context("write temporary configuration")?;
-    file.sync_all().context("sync temporary configuration")?;
-    Ok(())
-}
-
-#[cfg(not(target_os = "windows"))]
-fn replace_config_file(temporary: &Path, target: &Path) -> Result<()> {
-    fs::rename(temporary, target).context("replace configuration atomically")
-}
-
-#[cfg(target_os = "windows")]
-fn replace_config_file(temporary: &Path, target: &Path) -> Result<()> {
-    if !target.exists() {
-        return fs::rename(temporary, target).context("create configuration");
-    }
-
-    use std::os::windows::ffi::OsStrExt;
-    use windows_sys::Win32::Storage::FileSystem::ReplaceFileW;
-
-    fn wide(path: &Path) -> Vec<u16> {
-        path.as_os_str().encode_wide().chain(Some(0)).collect()
-    }
-
-    let target = wide(target);
-    let temporary = wide(temporary);
-    // ReplaceFileW atomically swaps the new file into place when the destination already
-    // exists. `rename` alone has inconsistent replacement semantics across Windows versions.
-    let result = unsafe {
-        ReplaceFileW(
-            target.as_ptr(),
-            temporary.as_ptr(),
-            std::ptr::null(),
-            0,
-            std::ptr::null(),
-            std::ptr::null(),
-        )
-    };
-    if result == 0 {
-        return Err(io::Error::last_os_error()).context("replace configuration atomically");
-    }
-    Ok(())
-}
-
-fn read_config(path: &Path) -> Result<StoredConfig> {
-    let source = fs::read(path).with_context(|| format!("read {}", path.display()))?;
-    serde_json::from_slice(&source).with_context(|| format!("parse {}", path.display()))
-}
-
-fn backup_legacy(path: &PathBuf) -> Result<()> {
-    let stamp = Local::now().format("%Y%m%d%H%M%S");
-    let backup = path.with_extension(format!("json.{stamp}.bak"));
-    match fs::copy(path, backup) {
-        Ok(_) => Ok(()),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(error).context("backup legacy configuration"),
-    }
-}
-
-fn legacy_paths() -> Vec<PathBuf> {
-    let mut paths = Vec::new();
-    let home = env::var_os("HOME").map(PathBuf::from);
-
-    #[cfg(target_os = "macos")]
-    if let Some(home) = &home {
-        paths.push(home.join("Library/Application Support/neko/neko-config.json"));
-        paths.push(home.join("Library/Application Support/Neko/neko-config.json"));
-        paths.push(home.join("Library/Application Support/com.neko.app/neko-config.json"));
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        if let Some(app_data) = env::var_os("APPDATA") {
-            paths.push(PathBuf::from(&app_data).join("neko/neko-config.json"));
-            paths.push(PathBuf::from(app_data).join("Neko/neko-config.json"));
-        }
-        if let Some(local_app_data) = env::var_os("LOCALAPPDATA") {
-            paths.push(PathBuf::from(local_app_data).join("neko/neko-config.json"));
-        }
-        if let Some(program_data) = env::var_os("PROGRAMDATA") {
-            paths.push(PathBuf::from(program_data).join("com.neko.app/neko-config.json"));
-        }
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        if let Some(config_home) = env::var_os("XDG_CONFIG_HOME") {
-            paths.push(PathBuf::from(config_home).join("neko/neko-config.json"));
-        }
-        if let Some(home) = home {
-            paths.push(home.join(".config/neko/neko-config.json"));
-            paths.push(home.join(".config/Neko/neko-config.json"));
-            paths.push(home.join(".config/com.neko.app/neko-config.json"));
-        }
-    }
-
-    paths
 }
 
 #[cfg(test)]
