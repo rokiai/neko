@@ -1,14 +1,14 @@
 # Neko Tauri 迁移评审报告与治理清单
 
-> 评审基线：commit `fd5a5b9`（Fix macOS Break Spaces follow）+ 工作区未提交改动（`platform/windows_desktops.rs` 新增、`platform/mod.rs`、`Cargo.toml`）。
+> 评审基线：commit `bb04890`（Fix macOS Break Spaces follow）+ 工作区未提交改动（`platform/windows_desktops.rs` 新增、`platform/mod.rs`、`Cargo.toml`）。
 >
-> 对照物：`docs/TAURI-MIGRATION.md` 全文；迁移前 Electron 实现（`1ce4c92^` 的 `src/main/lib/*`）。
+> 对照物：迁移计划文档（已从仓库移除）；迁移前 Electron 实现（`71089d1^` 的 `src/main/lib/*`）。
 >
 > 评审日期：2026-08-13。方法：全量通读 Rust/前端核心代码，逐条对照迁移文档与旧实现语义，运行验证套件。
 >
 > **修复日期：2026-08-13（同日）。N1–N14 全部处理完毕，状态见各条目；本机无法验证的项（Windows 编译、真机锁屏）已在条目内注明。**
 >
-> **第二轮复扫：2026-08-13（同日，commit `b474f8e` 之后）。全量重审代码 + 三平台 cfg 视角推演 + Linux 依赖树分析，新增 N15–N17，均已修复。**
+> **第二轮复扫：2026-08-13（同日，commit `02a36ee` 之后）。全量重审代码 + 三平台 cfg 视角推演 + Linux 依赖树分析，新增 N15–N17，均已修复。**
 
 ## 验证快照
 
@@ -103,7 +103,7 @@
 
 ### N13 [低] 迁移文档与实现脱节 — [x]
 
-- **修复记录**：`TAURI-MIGRATION.md` 已修订：阶段 A/B 全勾、C/D 按实情勾选并注明真机验收缺口；§16.2 Dock 策略改为"跟随设置窗口可见性"（与实现一致并说明原因）；§5.2 标注 `neko://sound/*`（rodio 直播）与 `neko://runtime/status`（前端轮询）的实际取舍；§3.2 标注实际启用插件集与 capabilities 现状；§7.2 更新三平台锁屏实现与 Linux 已知缺口；§15 当前状态重写。
+- **修复记录**：迁移计划文档当时已修订对齐实现（阶段勾选、Dock 策略、事件取舍、插件集、三平台锁屏与 Linux 缺口）；该文档后续已从仓库移除，本报告为迁移评审的唯一留存记录。
 
 ### N14 [低] rust 脚本从仓库根运行时不读取 `rust-toolchain.toml` — [x]
 
@@ -112,7 +112,7 @@
 ### N15 [高] Linux CI 自迁移提交起持续红：系统库缺失 + 废弃包名 — [~]
 
 - 位置：`.github/workflows/ci.yml` / `release.yml` 的 apt 依赖列表。
-- 失败场景：`Rust lint`（clippy）是 quality job 里第一个编译整个 Rust 依赖树的步骤，`alsa-sys`（rodio→cpal）的 build script 找不到系统 `alsa.pc` 直接失败。历史 CI 在纯文档提交（fc28682）上同样红，证明失败与提交内容无关、是环境缺陷。
+- 失败场景：`Rust lint`（clippy）是 quality job 里第一个编译整个 Rust 依赖树的步骤，`alsa-sys`（rodio→cpal）的 build script 找不到系统 `alsa.pc` 直接失败。历史 CI 在纯文档提交（bf76034）上同样红，证明失败与提交内容无关、是环境缺陷。
 - 证据：`cargo tree --target x86_64-unknown-linux-gnu` 确认依赖树含 `alsa-sys`（rodio）、`libdbus-sys`（tao 与 user-idle2 两路引入）、`x11`（user-idle2）；GitHub ubuntu runner 不预装 `libasound2-dev`。另 `libappindicator3-dev` 在 Ubuntu 24.04（现 ubuntu-latest）已移除，Tauri 2 官方 prerequisites 为 `libayatana-appindicator3-dev`。
 - **修复记录**：两个 workflow 的 apt 列表补 `libasound2-dev`、`libdbus-1-dev`、`libx11-dev`、`libxss-dev`、`libxdo-dev`，`libappindicator3-dev` 换 `libayatana-appindicator3-dev`（22.04/24.04 均存在），注释登记各库对应的 crate 以便日后增删依赖时同步。
 - 待确认：下次 push 观察 ubuntu quality job（按当前指示暂不看首跑结果）。

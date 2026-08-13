@@ -1,8 +1,8 @@
 //! Explicit Rust mirror of the TypeScript `Settings` interface
-//! (`src/shared/settings.ts`) — the DTO contract required by
-//! `docs/TAURI-MIGRATION.md` §6.1. Deserializing into this schema validates
-//! field presence and types at the IPC boundary; runtime reads elsewhere keep
-//! using `serde_json::Value` with per-key fallbacks. Keep both sides in sync.
+//! (`src/shared/settings.ts`) — the DTO contract at the IPC boundary.
+//! Deserializing into this schema validates field presence and types;
+//! runtime reads elsewhere keep using `serde_json::Value` with per-key
+//! fallbacks. Keep both sides in sync.
 
 use serde::Deserialize;
 use serde_json::Value;
