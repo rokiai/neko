@@ -41,10 +41,10 @@ export function BreakPage(): React.JSX.Element {
         if (!active) return
         setSettings(nextSettings)
         if (activeEndTime != null) setSharedEndTime(activeEndTime)
-        // Skip readiness toast — open the break overlay as soon as time is up.
+        // Give the webview a beat to paint before the native show path runs.
         setPhase('progress')
       })()
-    }, 400)
+    }, 250)
 
     return () => {
       active = false

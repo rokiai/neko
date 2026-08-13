@@ -52,10 +52,8 @@ export function BreakProgress({
       if (readyEndTime != null) setLocalEndTime(readyEndTime)
       setNow(performance.now() + performance.timeOrigin)
       await new Promise<void>((resolve) => {
-        const timeout = window.setTimeout(resolve, 100)
         window.requestAnimationFrame(() => {
-          window.clearTimeout(timeout)
-          resolve()
+          window.requestAnimationFrame(() => resolve())
         })
       })
       try {
@@ -89,15 +87,16 @@ export function BreakProgress({
   const lengthMs = settings.breakLengthSeconds * 1000
   const remainingMs = endTime && now ? Math.max(0, endTime - now) : lengthMs
   const progress = endTime && now ? 1 - remainingMs / lengthMs : 0
-  const canEnd = settings.endBreakEnabled
+  const canEnd = isPrimary && settings.endBreakEnabled
+  const canSkip = isPrimary && settings.skipBreakEnabled
   const showCardBackdrop = settings.showBackdrop
   const breakTitle = resolveBreakTitle(settings.breakTitle, t)
   const breakMessage = resolveBreakMessage(settings.breakMessage, t)
 
-  const handlePostpone = (action: PostponeAction): void => {
+  const handleSkip = (): void => {
     if (!isPrimary || actionPending) return
     setActionPending(true)
-    void onPostpone(action).catch(() => setActionPending(false))
+    void onPostpone('skipped').catch(() => setActionPending(false))
   }
 
   return (
@@ -127,13 +126,13 @@ export function BreakProgress({
           <span>{formatDuration(remainingMs / 1000)}</span>
           <span>{Math.round(Math.min(100, progress * 100))}%</span>
         </div>
-        {isPrimary && settings.skipBreakEnabled && (
+        {canSkip && (
           <div className="break-actions">
             <button
               type="button"
               className="break-action"
               disabled={actionPending}
-              onClick={() => handlePostpone('skipped')}
+              onClick={handleSkip}
             >
               {t('break.skip')}
             </button>

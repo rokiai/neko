@@ -33,7 +33,9 @@ user-idle2 = "0.6"
 windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-objc2-app-kit = { version = "0.3.2", features = ["NSWindow"] }
+objc2 = "0.6.4"
+objc2-app-kit = { version = "0.3.2", features = ["NSGraphics", "NSPanel", "NSResponder", "NSWindow"] }
+objc2-foundation = { version = "0.3.2", features = ["NSGeometry", "NSObject"] }
 
 [profile.release]
 codegen-units = 1

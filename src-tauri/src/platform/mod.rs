@@ -7,6 +7,9 @@ use tauri::{
 
 use crate::{scheduler, scheduler::state::AppState};
 
+#[cfg(target_os = "macos")]
+mod macos_spaces;
+
 const BREAK_LABEL_PREFIX: &str = "break-";
 const BREAK_CARD_WIDTH: f64 = 520.0;
 const BREAK_CARD_HEIGHT: f64 = 320.0;
@@ -96,7 +99,10 @@ pub fn create_break_windows<R: Runtime>(app: &AppHandle<R>) -> Result<(), String
             .transparent(true)
             .shadow(false)
             .always_on_top(true)
-            .visible_on_all_workspaces(true)
+            // macOS Break overlays join Spaces via an NSPanel parent in
+            // macos_spaces — Tauri's visible_on_all_workspaces alone is a no-op
+            // for WKWebView NSWindow Space membership.
+            .visible_on_all_workspaces(cfg!(not(target_os = "macos")))
             .skip_taskbar(true)
             .resizable(false)
             .maximizable(false)
@@ -109,6 +115,10 @@ pub fn create_break_windows<R: Runtime>(app: &AppHandle<R>) -> Result<(), String
             Ok(window) => window,
             Err(error) => {
                 destroy_windows(app, &labels);
+                #[cfg(target_os = "macos")]
+                {
+                    let _ = app.run_on_main_thread(macos_spaces::release_all_space_anchors);
+                }
                 return Err(format!("create Break window for display {index}: {error}"));
             }
         };
@@ -128,14 +138,19 @@ pub fn create_break_windows<R: Runtime>(app: &AppHandle<R>) -> Result<(), String
     }
 
     state.scheduler.lock().break_window_labels = labels;
-    sync_macos_dock(app, false);
+    // Keep Dock/activation policy aligned with Settings visibility. Forcing
+    // Accessory during preview (Settings still open) steals focus and can jump
+    // the user to another Space/display.
+    sync_macos_dock(app, settings_is_visible(app));
     Ok(())
 }
 
 pub fn show_break_window<R: Runtime>(window: &tauri::WebviewWindow<R>) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
-        show_macos_break_window(window)?;
+        // orderFrontRegardless only — Tauri show() → makeKeyAndOrderFront flashes
+        // and can jump Spaces. Without Transient, inactive show stays visible.
+        macos_spaces::show_break_window_inactive(window)?;
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -185,26 +200,7 @@ fn configure_break_window<R: Runtime>(window: &tauri::WebviewWindow<R>, label: &
 fn configure_macos_break_window<R: Runtime>(
     window: &tauri::WebviewWindow<R>,
 ) -> Result<(), String> {
-    use objc2_app_kit::{
-        NSScreenSaverWindowLevel, NSWindow, NSWindowAnimationBehavior, NSWindowCollectionBehavior,
-    };
-
-    window
-        .with_webview(|webview| unsafe {
-            let native_window = webview.ns_window().cast::<NSWindow>();
-            if native_window.is_null() {
-                return;
-            }
-            let native_window = &*native_window;
-            let behavior = NSWindowCollectionBehavior::CanJoinAllSpaces
-                | NSWindowCollectionBehavior::FullScreenAuxiliary;
-            native_window.setCollectionBehavior(behavior);
-            native_window.setLevel(NSScreenSaverWindowLevel);
-            native_window.setAnimationBehavior(NSWindowAnimationBehavior::None);
-            native_window.setHidesOnDeactivate(false);
-            native_window.setCanHide(false);
-        })
-        .map_err(|error| format!("configure native Break window: {error}"))
+    macos_spaces::prepare_break_window(window)
 }
 
 pub fn maintain_break_windows<R: Runtime>(app: &AppHandle<R>) {
@@ -220,34 +216,10 @@ pub fn maintain_break_windows<R: Runtime>(app: &AppHandle<R>) {
         };
 
         #[cfg(target_os = "macos")]
-        if let Err(error) = show_macos_break_window(&window) {
+        if let Err(error) = macos_spaces::maintain_break_window(&window) {
             tracing::warn!(label = %label, "could not restore Break window after Space change: {error}");
         }
     }
-}
-
-#[cfg(target_os = "macos")]
-fn show_macos_break_window<R: Runtime>(window: &tauri::WebviewWindow<R>) -> Result<(), String> {
-    use objc2_app_kit::{
-        NSScreenSaverWindowLevel, NSWindow, NSWindowAnimationBehavior, NSWindowCollectionBehavior,
-    };
-
-    window
-        .with_webview(|webview| unsafe {
-            let native_window = webview.ns_window().cast::<NSWindow>();
-            if !native_window.is_null() {
-                let native_window = &*native_window;
-                let behavior = NSWindowCollectionBehavior::CanJoinAllSpaces
-                    | NSWindowCollectionBehavior::FullScreenAuxiliary;
-                native_window.setCollectionBehavior(behavior);
-                native_window.setLevel(NSScreenSaverWindowLevel);
-                native_window.setAnimationBehavior(NSWindowAnimationBehavior::None);
-                native_window.setHidesOnDeactivate(false);
-                native_window.setCanHide(false);
-                native_window.orderFrontRegardless();
-            }
-        })
-        .map_err(|error| format!("restore native Break window: {error}"))
 }
 
 pub fn require_primary_break_window(window: &tauri::WebviewWindow) -> Result<(), String> {
@@ -270,6 +242,10 @@ pub fn close_break_windows<R: Runtime>(app: &AppHandle<R>) {
         std::mem::take(&mut scheduler.break_window_labels)
     };
     destroy_windows(app, &labels);
+    #[cfg(target_os = "macos")]
+    {
+        let _ = app.run_on_main_thread(macos_spaces::release_all_space_anchors);
+    }
     sync_macos_dock(app, settings_is_visible(app));
 }
 

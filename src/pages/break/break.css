@@ -124,7 +124,6 @@ html:has(.break-root) .ant-app {
   background: color-mix(in srgb, var(--break-bg, #3f9f7e) 94%, black);
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
   text-align: center;
-  animation: break-rise 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .break-end-quiet {
@@ -227,17 +226,6 @@ html:has(.break-root) .ant-app {
 .break-action:disabled {
   cursor: default;
   opacity: 0.5;
-}
-
-@keyframes break-rise {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 @keyframes break-fade-out {

@@ -16,12 +16,12 @@ pub struct AppState {
     pub(crate) scheduler: Mutex<SchedulerState>,
 }
 
-#[derive(Default)]
 pub(crate) struct SchedulerState {
     pub break_time_ms: Option<i64>,
     pub having_break: bool,
     pub postponed_count: u32,
     pub idle_start_at_ms: Option<i64>,
+    pub lock_start_at_ms: Option<i64>,
     pub last_tick_at_ms: Option<i64>,
     pub last_completed_at_ms: Option<i64>,
     pub break_started_at: Option<Instant>,
@@ -33,11 +33,41 @@ pub(crate) struct SchedulerState {
     pub idle_detection_failures: u8,
     pub idle_detection_disabled: bool,
     pub preview_active: bool,
+    pub preview_relaunch_pending: bool,
     pub active_break_settings: Option<Value>,
     pub break_window_labels: Vec<String>,
     pub break_window_ready_labels: Vec<String>,
     pub pending_work_seconds: i64,
     pub last_stats_flush_at_ms: i64,
+}
+
+impl Default for SchedulerState {
+    fn default() -> Self {
+        Self {
+            break_time_ms: None,
+            having_break: false,
+            postponed_count: 0,
+            idle_start_at_ms: None,
+            lock_start_at_ms: None,
+            last_tick_at_ms: None,
+            last_completed_at_ms: None,
+            break_started_at: None,
+            break_end_at_ms: None,
+            started_from_tray: false,
+            pending_break_due: false,
+            currently_idle: false,
+            was_in_working_hours: true,
+            idle_detection_failures: 0,
+            idle_detection_disabled: false,
+            preview_active: false,
+            preview_relaunch_pending: false,
+            active_break_settings: None,
+            break_window_labels: Vec::new(),
+            break_window_ready_labels: Vec::new(),
+            pending_work_seconds: 0,
+            last_stats_flush_at_ms: 0,
+        }
+    }
 }
 
 impl AppState {

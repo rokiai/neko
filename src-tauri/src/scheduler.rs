@@ -48,11 +48,14 @@ pub fn reset_schedule<R: Runtime>(app: &AppHandle<R>) {
     scheduler.having_break = false;
     scheduler.break_time_ms = None;
     scheduler.postponed_count = 0;
+    scheduler.idle_start_at_ms = None;
+    scheduler.lock_start_at_ms = None;
     scheduler.pending_break_due = false;
     scheduler.started_from_tray = false;
     scheduler.break_started_at = None;
     scheduler.break_end_at_ms = None;
     scheduler.preview_active = false;
+    scheduler.preview_relaunch_pending = false;
     scheduler.active_break_settings = None;
     scheduler.break_window_ready_labels.clear();
     if enabled {
@@ -92,6 +95,9 @@ pub fn postpone_break<R: Runtime>(app: &AppHandle<R>, action: &str) {
     let frequency_seconds = break_frequency_seconds(app);
     let state = app.state::<AppState>();
     let mut scheduler = state.scheduler.lock();
+    if action == "snoozed" && !allow_postpone_locked(&scheduler, app) {
+        return;
+    }
     scheduler.postponed_count = scheduler.postponed_count.saturating_add(1);
     clear_active_break_locked(&mut scheduler);
     if action == "skipped" {
@@ -128,6 +134,8 @@ pub fn end_popup_break<R: Runtime>(app: &AppHandle<R>) {
     let (duration_ms, should_record, was_preview) = {
         let state = app.state::<AppState>();
         let mut scheduler = state.scheduler.lock();
+        let scheduled_break_time = scheduler.break_time_ms;
+        let postponed_count = scheduler.postponed_count;
         let duration = scheduler
             .break_started_at
             .take()
@@ -136,7 +144,16 @@ pub fn end_popup_break<R: Runtime>(app: &AppHandle<R>) {
         let should_record = !was_preview && duration.is_some();
         let now = now_ms();
         clear_active_break_locked(&mut scheduler);
-        if !was_preview {
+        if was_preview {
+            scheduler.postponed_count = postponed_count;
+            if scheduled_break_time.is_some_and(|time| time > now) {
+                scheduler.break_time_ms = scheduled_break_time;
+            } else {
+                schedule_next_locked(&mut scheduler, now, frequency);
+                scheduler.postponed_count = postponed_count;
+            }
+        } else {
+            scheduler.postponed_count = 0;
             schedule_next_locked(&mut scheduler, now, frequency);
         }
         (duration, should_record, was_preview)
@@ -173,7 +190,7 @@ pub fn break_window_destroyed<R: Runtime>(app: &AppHandle<R>, label: &str) {
         scheduler
             .break_window_ready_labels
             .retain(|item| item != label);
-        known_window && scheduler.having_break
+        known_window && scheduler.having_break && !scheduler.preview_relaunch_pending
     };
     if should_finish {
         end_popup_break(app);
@@ -201,17 +218,55 @@ pub fn complete_break_tracking<R: Runtime>(app: &AppHandle<R>, duration_ms: u64)
 }
 
 pub fn preview_break<R: Runtime>(app: &AppHandle<R>, settings: Value) -> Result<(), String> {
-    let settings = crate::config::normalize_settings(&settings);
-    {
+    let mut settings = crate::config::normalize_settings(&settings);
+    set_string(&mut settings, "notificationType", "POPUP");
+    set_bool(&mut settings, "endBreakEnabled", true);
+    let was_active = {
         let state = app.state::<AppState>();
         let mut scheduler = state.scheduler.lock();
         if scheduler.having_break {
-            return Err("A Break is already active".to_owned());
+            scheduler.preview_relaunch_pending = true;
+            scheduler.preview_active = true;
+            scheduler.break_started_at = None;
+            scheduler.break_end_at_ms = None;
+            scheduler.started_from_tray = true;
+            scheduler.active_break_settings = Some(settings.clone());
+            true
+        } else {
+            scheduler.having_break = true;
+            scheduler.started_from_tray = true;
+            scheduler.preview_active = true;
+            scheduler.active_break_settings = Some(settings.clone());
+            false
         }
-        scheduler.having_break = true;
-        scheduler.started_from_tray = true;
-        scheduler.preview_active = true;
-        scheduler.active_break_settings = Some(settings);
+    };
+    if was_active {
+        let _ = app.emit("neko://break/end", ());
+        platform::close_break_windows(app);
+        let app = app.clone();
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(450)).await;
+            let should_launch = {
+                let state = app.state::<AppState>();
+                let mut scheduler = state.scheduler.lock();
+                if !scheduler.preview_relaunch_pending {
+                    false
+                } else {
+                    scheduler.preview_relaunch_pending = false;
+                    scheduler.having_break = true;
+                    true
+                }
+            };
+            if should_launch {
+                if let Err(error) = platform::create_break_windows(&app) {
+                    tracing::warn!("could not relaunch Break preview: {error}");
+                    clear_active_break_locked(&mut app.state::<AppState>().scheduler.lock());
+                } else {
+                    platform::refresh_tray(&app);
+                }
+            }
+        });
+        return Ok(());
     }
     if let Err(error) = platform::create_break_windows(app) {
         let state = app.state::<AppState>();
@@ -315,7 +370,7 @@ pub fn runtime_status<R: Runtime>(app: &AppHandle<R>) -> RuntimeStatus {
             .map(|time| (time - now).max(0) / 1_000),
         today,
         daily_goal,
-        focus_stars: (completed * 5 / daily_goal).clamp(0, 5),
+        focus_stars: ((completed as f64 * 5.0 / daily_goal as f64).round() as i64).clamp(0, 5),
         progress_percent: (completed * 100 / daily_goal).clamp(0, 100),
     }
 }
@@ -327,14 +382,17 @@ fn tick<R: Runtime>(app: &AppHandle<R>) {
     let settings = state.config.lock().settings.clone();
     let in_working_hours = is_within_working_hours(&settings);
     let idle_threshold = integer_from_settings(&settings, "idleResetLengthSeconds", 300).max(1);
-    let idle = {
+    let idle_status = {
         let mut scheduler = state.scheduler.lock();
-        idle::read_seconds(
+        idle::read_status(
             &mut scheduler,
             idle_threshold,
             bool_from_settings(&settings, "idleResetEnabled", false),
+            now,
         )
     };
+    let idle = idle_status.idle;
+    let idle_reset_notification = bool_from_settings(&settings, "idleResetNotification", false);
     let breaks_enabled = bool_from_settings(&settings, "breaksEnabled", true);
     let frequency = integer_from_settings(&settings, "breakFrequencySeconds", 1_680).max(1);
     let should_have_break = {
@@ -343,14 +401,35 @@ fn tick<R: Runtime>(app: &AppHandle<R>) {
     };
     let mut trigger = false;
     let mut flush_work_seconds = 0;
+    let mut idle_reset_minutes = None;
 
     {
         let mut scheduler = state.scheduler.lock();
+        if !idle {
+            let idle_start = scheduler
+                .idle_start_at_ms
+                .take()
+                .or(idle_status.lock_start_at_ms.filter(|_| !idle_status.locked));
+            if let Some(idle_start) = idle_start {
+                scheduler.last_completed_at_ms = Some(now);
+                scheduler.postponed_count = 0;
+                if idle_reset_notification {
+                    idle_reset_minutes = Some(
+                        ((now.saturating_sub(idle_start) as f64 / 60_000.0).round() as i64).max(1),
+                    );
+                }
+            }
+        }
         if !scheduler.was_in_working_hours && in_working_hours {
             scheduler.last_completed_at_ms = Some(now);
         }
         scheduler.was_in_working_hours = in_working_hours;
         scheduler.currently_idle = idle;
+        if idle && scheduler.idle_start_at_ms.is_none() {
+            scheduler.idle_start_at_ms = idle_status
+                .lock_start_at_ms
+                .or_else(|| (!idle_status.locked).then_some(now - idle_threshold * 1_000));
+        }
 
         let seconds_since_last_tick = scheduler
             .last_tick_at_ms
@@ -358,7 +437,18 @@ fn tick<R: Runtime>(app: &AppHandle<R>) {
             .unwrap_or(0);
         let idle_seconds = idle_threshold;
         let break_was_overdue = scheduler.break_time_ms.is_some_and(|time| now > time);
-        if seconds_since_last_tick > frequency {
+        if idle_status.locked
+            && scheduler
+                .lock_start_at_ms
+                .is_some_and(|start| now.saturating_sub(start) > frequency * 1_000)
+        {
+            if scheduler.idle_start_at_ms.is_none() {
+                scheduler.idle_start_at_ms = scheduler.lock_start_at_ms;
+            }
+            if !break_was_overdue {
+                scheduler.break_time_ms = None;
+            }
+        } else if seconds_since_last_tick > frequency {
             if !break_was_overdue {
                 scheduler.break_time_ms = None;
             }
@@ -374,9 +464,6 @@ fn tick<R: Runtime>(app: &AppHandle<R>) {
         if !should_have_break && !scheduler.having_break && scheduler.break_time_ms.is_some() {
             if scheduler.break_time_ms.is_some_and(|time| now > time) {
                 scheduler.pending_break_due = true;
-            }
-            if idle {
-                scheduler.idle_start_at_ms = Some(now - idle_seconds * 1_000);
             }
             scheduler.break_time_ms = None;
         } else if should_have_break && scheduler.pending_break_due {
@@ -404,6 +491,14 @@ fn tick<R: Runtime>(app: &AppHandle<R>) {
             tracing::warn!("could not persist work stats: {error}");
         }
     }
+    if let Some(minutes) = idle_reset_minutes {
+        let _ = app
+            .notification()
+            .builder()
+            .title("Break automatically detected")
+            .body(format!("Away for about {minutes} minute(s). Timer reset."))
+            .show();
+    }
     if trigger {
         trigger_break(app);
     }
@@ -423,6 +518,18 @@ fn trigger_break<R: Runtime>(app: &AppHandle<R>) {
         }
         scheduler.having_break = true;
         scheduler.active_break_settings = Some(settings.clone());
+    }
+
+    let starts_immediately = settings
+        .get("notificationType")
+        .and_then(Value::as_str)
+        .is_some_and(|kind| kind == "NOTIFICATION")
+        || bool_from_settings(&settings, "immediatelyStartBreaks", true)
+        || app.state::<AppState>().scheduler.lock().started_from_tray;
+    if starts_immediately
+        && settings.get("notificationType").and_then(Value::as_str) != Some("NOTIFICATION")
+    {
+        begin_popup_break(app);
     }
 
     if settings.get("notificationType").and_then(Value::as_str) == Some("NOTIFICATION") {
@@ -476,6 +583,7 @@ fn trigger_notification_break<R: Runtime>(app: &AppHandle<R>, settings: &Value) 
     {
         let mut scheduler = state.scheduler.lock();
         clear_active_break_locked(&mut scheduler);
+        scheduler.postponed_count = 0;
         schedule_next_locked(&mut scheduler, now_ms(), frequency);
     }
     platform::refresh_tray(app);
@@ -499,6 +607,7 @@ fn clear_active_break_locked(scheduler: &mut crate::scheduler::state::SchedulerS
     scheduler.break_started_at = None;
     scheduler.break_end_at_ms = None;
     scheduler.preview_active = false;
+    scheduler.preview_relaunch_pending = false;
     scheduler.active_break_settings = None;
     scheduler.break_time_ms = None;
 }
@@ -515,6 +624,14 @@ fn schedule_next_locked(
     }
     scheduler.pending_break_due = false;
     scheduler.break_time_ms = Some(now + delay_seconds.max(1) * 1_000);
+}
+
+fn allow_postpone_locked<R: Runtime>(
+    scheduler: &crate::scheduler::state::SchedulerState,
+    app: &AppHandle<R>,
+) -> bool {
+    let limit = integer_setting(app, "postponeLimit", 0).max(0) as u32;
+    limit == 0 || scheduler.postponed_count < limit
 }
 
 fn is_within_working_hours(settings: &Value) -> bool {
@@ -604,6 +721,12 @@ fn string_from_settings(settings: &Value, key: &str) -> Option<String> {
 fn set_bool(settings: &mut Value, key: &str, value: bool) {
     if let Some(object) = settings.as_object_mut() {
         object.insert(key.to_owned(), Value::Bool(value));
+    }
+}
+
+fn set_string(settings: &mut Value, key: &str, value: &str) {
+    if let Some(object) = settings.as_object_mut() {
+        object.insert(key.to_owned(), Value::String(value.to_owned()));
     }
 }
 

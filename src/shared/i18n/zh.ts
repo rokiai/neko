@@ -141,7 +141,7 @@ export const zh: Messages = {
   'break.skip': '跳过',
   'break.cancel': '取消休息',
   'break.end': '结束休息',
-  'break.defaultTitle': '该休息一下了。',
+  'break.defaultTitle': '该休息一下了',
   'break.defaultMessage': '让双眼休息一下\n喝点水，补充能量\n放松片刻',
 
   'tray.disabled': '休息提醒已关闭',
