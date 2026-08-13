@@ -35,6 +35,7 @@ pub(crate) struct SchedulerState {
     pub preview_active: bool,
     pub active_break_settings: Option<Value>,
     pub break_window_labels: Vec<String>,
+    pub break_window_ready_labels: Vec<String>,
     pub pending_work_seconds: i64,
     pub last_stats_flush_at_ms: i64,
 }

@@ -54,6 +54,7 @@ pub fn reset_schedule<R: Runtime>(app: &AppHandle<R>) {
     scheduler.break_end_at_ms = None;
     scheduler.preview_active = false;
     scheduler.active_break_settings = None;
+    scheduler.break_window_ready_labels.clear();
     if enabled {
         schedule_next_locked(&mut scheduler, now, frequency);
     }
@@ -169,6 +170,9 @@ pub fn break_window_destroyed<R: Runtime>(app: &AppHandle<R>, label: &str) {
             .iter()
             .any(|item| item == label);
         scheduler.break_window_labels.retain(|item| item != label);
+        scheduler
+            .break_window_ready_labels
+            .retain(|item| item != label);
         known_window && scheduler.having_break
     };
     if should_finish {
@@ -263,6 +267,10 @@ pub fn active_settings<R: Runtime>(app: &AppHandle<R>) -> Value {
 
 pub fn started_from_tray<R: Runtime>(app: &AppHandle<R>) -> bool {
     app.state::<AppState>().scheduler.lock().started_from_tray
+}
+
+pub fn active_break_end_time<R: Runtime>(app: &AppHandle<R>) -> Option<i64> {
+    app.state::<AppState>().scheduler.lock().break_end_at_ms
 }
 
 pub fn time_since_last_break_seconds<R: Runtime>(app: &AppHandle<R>) -> Option<i64> {
@@ -398,6 +406,9 @@ fn tick<R: Runtime>(app: &AppHandle<R>) {
     }
     if trigger {
         trigger_break(app);
+    }
+    if state.scheduler.lock().having_break {
+        platform::maintain_break_windows(app);
     }
     platform::refresh_tray(app);
 }

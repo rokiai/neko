@@ -18,15 +18,6 @@ export function BreakPage(): React.JSX.Element {
   const isPrimary = useMemo(() => windowId() === 0, [])
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        const nextSettings = await neko.getSettings()
-        setSettings(nextSettings)
-        // Skip readiness toast — open the break overlay as soon as time is up.
-        setPhase('progress')
-      })()
-    }, 400)
-
     const offStart = neko.onBreakStart((breakEndTime) => {
       setSharedEndTime(breakEndTime)
       setPhase('progress')
@@ -37,12 +28,53 @@ export function BreakPage(): React.JSX.Element {
       window.setTimeout(() => window.close(), 420)
     })
 
+    let active = true
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        const nextSettings = await neko.getSettings()
+        let activeEndTime: number | null = null
+        try {
+          activeEndTime = await neko.getActiveBreakEndTime()
+        } catch (error) {
+          console.warn('[neko] failed to restore active Break state', error)
+        }
+        if (!active) return
+        setSettings(nextSettings)
+        if (activeEndTime != null) setSharedEndTime(activeEndTime)
+        // Skip readiness toast — open the break overlay as soon as time is up.
+        setPhase('progress')
+      })()
+    }, 400)
+
     return () => {
+      active = false
       window.clearTimeout(timer)
       offStart()
       offEnd()
     }
   }, [neko])
+
+  useEffect(() => {
+    if (isPrimary || phase !== 'progress' || sharedEndTime != null) return
+
+    let active = true
+    const syncActiveEndTime = async (): Promise<void> => {
+      try {
+        const activeEndTime = await neko.getActiveBreakEndTime()
+        if (active && activeEndTime != null) setSharedEndTime(activeEndTime)
+      } catch (error) {
+        console.warn('[neko] failed to restore active Break state', error)
+      }
+    }
+
+    void syncActiveEndTime()
+    const poll = window.setInterval(() => void syncActiveEndTime(), 150)
+
+    return () => {
+      active = false
+      window.clearInterval(poll)
+    }
+  }, [isPrimary, neko, phase, sharedEndTime])
 
   if (!settings || phase === 'boot') return <div className="break-root" />
 
@@ -69,7 +101,8 @@ export function BreakPage(): React.JSX.Element {
           closing={phase === 'closing'}
           onReady={async () => {
             await neko.resizeBreakWindow()
-            return neko.startBreak()
+            if (isPrimary) return neko.startBreak()
+            return sharedEndTime ?? neko.getActiveBreakEndTime()
           }}
           onFinished={async (elapsedMs) => {
             if (isPrimary) {

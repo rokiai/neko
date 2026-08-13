@@ -11,7 +11,7 @@ interface Props {
   isPrimary: boolean
   sharedEndTime: number | null
   closing: boolean
-  onReady: () => Promise<number>
+  onReady: () => Promise<number | null>
   onFinished: (elapsedMs: number) => Promise<void>
   onCancel: () => Promise<void>
   onPostpone: (action: PostponeAction) => Promise<void>
@@ -31,7 +31,6 @@ export function BreakProgress({
   const { t } = useI18n()
   const [localEndTime, setLocalEndTime] = useState<number | null>(null)
   const [now, setNow] = useState(0)
-  const [canPostpone, setCanPostpone] = useState(false)
   const [actionPending, setActionPending] = useState(false)
   const startedAt = useRef(0)
   const finished = useRef(false)
@@ -45,29 +44,27 @@ export function BreakProgress({
     startedAt.current = performance.now() + performance.timeOrigin
 
     void (async () => {
-      const sharedEndTime = await onReady()
+      const readyEndTime = await onReady()
       if (isPrimary) {
         await neko.playStartSound(settings.soundType, settings.breakSoundVolume)
       }
       if (finished.current) return
-      setLocalEndTime(sharedEndTime)
+      if (readyEndTime != null) setLocalEndTime(readyEndTime)
       setNow(performance.now() + performance.timeOrigin)
+      await new Promise<void>((resolve) => {
+        const timeout = window.setTimeout(resolve, 100)
+        window.requestAnimationFrame(() => {
+          window.clearTimeout(timeout)
+          resolve()
+        })
+      })
+      try {
+        await neko.showBreakWindow()
+      } catch (error) {
+        console.warn('[neko] failed to show Break window', error)
+      }
     })()
   }, [isPrimary, neko, onReady, settings])
-
-  useEffect(() => {
-    if (!isPrimary || !settings.postponeBreakEnabled) {
-      return
-    }
-
-    let active = true
-    void neko.getAllowPostpone().then((allowed) => {
-      if (active) setCanPostpone(allowed)
-    })
-    return () => {
-      active = false
-    }
-  }, [isPrimary, neko, settings.postponeBreakEnabled])
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -93,7 +90,6 @@ export function BreakProgress({
   const remainingMs = endTime && now ? Math.max(0, endTime - now) : lengthMs
   const progress = endTime && now ? 1 - remainingMs / lengthMs : 0
   const canEnd = settings.endBreakEnabled
-  const showPostpone = isPrimary && settings.postponeBreakEnabled && canPostpone
   const showCardBackdrop = settings.showBackdrop
   const breakTitle = resolveBreakTitle(settings.breakTitle, t)
   const breakMessage = resolveBreakMessage(settings.breakMessage, t)
@@ -131,28 +127,16 @@ export function BreakProgress({
           <span>{formatDuration(remainingMs / 1000)}</span>
           <span>{Math.round(Math.min(100, progress * 100))}%</span>
         </div>
-        {isPrimary && (showPostpone || settings.skipBreakEnabled) && (
+        {isPrimary && settings.skipBreakEnabled && (
           <div className="break-actions">
-            {showPostpone && (
-              <button
-                type="button"
-                className="break-action"
-                disabled={actionPending}
-                onClick={() => handlePostpone('snoozed')}
-              >
-                {t('break.snooze')}
-              </button>
-            )}
-            {settings.skipBreakEnabled && (
-              <button
-                type="button"
-                className="break-action"
-                disabled={actionPending}
-                onClick={() => handlePostpone('skipped')}
-              >
-                {t('break.skip')}
-              </button>
-            )}
+            <button
+              type="button"
+              className="break-action"
+              disabled={actionPending}
+              onClick={() => handlePostpone('skipped')}
+            >
+              {t('break.skip')}
+            </button>
           </div>
         )}
       </div>

@@ -68,6 +68,8 @@ pub fn run() {
             cmd::break_postpone,
             cmd::break_start,
             cmd::break_end,
+            cmd::break_active_end_time_get,
+            cmd::break_window_ready,
             cmd::break_length_get,
             cmd::break_window_resize,
             cmd::break_tracking_complete,

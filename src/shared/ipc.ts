@@ -11,6 +11,10 @@ export interface NekoApi {
   /** Starts the shared break clock and returns its absolute end timestamp. */
   startBreak: () => Promise<number>
   endBreak: () => Promise<void>
+  /** Returns the shared end timestamp for an active break, if one exists. */
+  getActiveBreakEndTime: () => Promise<number | null>
+  /** Shows a Break window after its renderer has mounted without flashing. */
+  showBreakWindow: () => Promise<void>
   getBreakLength: () => Promise<number>
   resizeBreakWindow: () => Promise<void>
   completeBreakTracking: (breakDurationMs: number) => Promise<void>

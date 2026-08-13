@@ -117,6 +117,16 @@ pub fn break_end(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn break_active_end_time_get(app: AppHandle) -> Option<i64> {
+    scheduler::active_break_end_time(&app)
+}
+
+#[tauri::command]
+pub fn break_window_ready(window: WebviewWindow) -> Result<(), String> {
+    platform::show_break_window(&window)
+}
+
+#[tauri::command]
 pub fn break_length_get(app: AppHandle) -> i64 {
     scheduler::active_settings(&app)
         .get("breakLengthSeconds")
