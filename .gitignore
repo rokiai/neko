@@ -14,3 +14,4 @@ yarn.lock
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+.pnpm-store
