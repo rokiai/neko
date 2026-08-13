@@ -18,8 +18,15 @@ const BREAK_CARD_HEIGHT: f64 = 320.0;
 
 pub fn show_settings<R: Runtime>(app: &AppHandle<R>) {
     if let Some(window) = app.get_webview_window("settings") {
-        let _ = window.show();
-        let _ = window.unminimize();
+        if window.is_minimized().unwrap_or(false) {
+            // `show()` would makeKeyAndOrderFront the miniaturized window: it
+            // pops in at full size and the deminiaturize animation then
+            // re-presents it, which reads as a flash. Deminiaturizing alone
+            // restores and orders the window in.
+            let _ = window.unminimize();
+        } else {
+            let _ = window.show();
+        }
         let _ = window.set_focus();
         sync_macos_dock(app, true);
     }
