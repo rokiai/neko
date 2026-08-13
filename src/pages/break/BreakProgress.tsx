@@ -72,15 +72,30 @@ export function BreakProgress({
     })()
   }, [isPrimary, neko, onReady, settings])
 
-  // 1s is the precision the UI actually shows (remaining seconds, whole
-  // percent). Reading the wall clock each tick keeps the countdown correct
+  // The UI only shows whole seconds, so it wakes once a second — but the last
+  // wake is scheduled exactly on `endTime`, because the effect below ends the
+  // break when `now` reaches it. A plain 1s interval would overrun the break
+  // by up to a second, which is 20% of the shortest configurable break (5s).
+  // Reading the wall clock on every wake also keeps the countdown honest
   // across system sleep, which a single end-of-break timeout would not.
   useEffect(() => {
-    const id = window.setInterval(() => {
-      setNow(performance.now() + performance.timeOrigin)
-    }, 1000)
-    return () => window.clearInterval(id)
-  }, [])
+    let cancelled = false
+    let timer = 0
+
+    const wake = (): void => {
+      if (cancelled) return
+      const current = performance.now() + performance.timeOrigin
+      setNow(current)
+      const untilEnd = endTime ? endTime - current : Number.POSITIVE_INFINITY
+      timer = window.setTimeout(wake, Math.max(0, Math.min(1000, untilEnd)))
+    }
+
+    wake()
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [endTime])
 
   // Written straight to the DOM once per end time: the bar is owned by the
   // compositor, not by React, so the countdown re-render neither restarts nor
@@ -155,7 +170,11 @@ export function BreakProgress({
           <div ref={meterRef} className="break-meter-fill" />
         </div>
         <div className="break-meta">
-          <span>{formatDuration(remainingMs / 1000)}</span>
+          {/* Round up: the clock is sampled once a second and each wake lands a
+              few ms late, so flooring would drop a whole label (2m 00s jumping
+              straight to 1m 58s). Ceiling also reads "1s" until the break is
+              actually over. */}
+          <span>{formatDuration(Math.ceil(remainingMs / 1000))}</span>
           <span>{Math.round(Math.min(100, progress * 100))}%</span>
         </div>
         {canSkip && (
