@@ -1,10 +1,12 @@
 node_modules
 dist
 out
+artifacts
 .DS_Store
 .eslintcache
 *.log*
 coverage
+src-tauri/target/
 *.tsbuildinfo
 .idea
 package-lock.json

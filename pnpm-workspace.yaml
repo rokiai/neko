@@ -1,4 +1,2 @@
 onlyBuiltDependencies:
-  - electron
   - esbuild
-  - electron-winstaller

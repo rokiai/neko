@@ -19,13 +19,7 @@ export enum TrayTextMode {
 
 /** How the popup break presents itself. */
 export enum BreakPopupStyle {
-  Card = 'CARD',
-  Video = 'VIDEO'
-}
-
-export enum BreakVideoSource {
-  Builtin = 'BUILTIN',
-  Custom = 'CUSTOM'
+  Card = 'CARD'
 }
 
 export type LocalePreference = 'system' | 'en' | 'zh' | 'ja'
@@ -80,11 +74,6 @@ export interface Settings {
   showBackdrop: boolean
   backdropOpacity: number
   breakPopupStyle: BreakPopupStyle
-  breakVideoSource: BreakVideoSource
-  /** Absolute path when breakVideoSource is Custom. */
-  breakVideoPath: string
-  /** When true, mute the break video and keep the separate break sound. */
-  breakVideoMuted: boolean
   endBreakEnabled: boolean
   skipBreakEnabled: boolean
   postponeBreakEnabled: boolean
@@ -129,9 +118,6 @@ export const DEFAULT_SETTINGS: Settings = {
   showBackdrop: true,
   backdropOpacity: 0.72,
   breakPopupStyle: BreakPopupStyle.Card,
-  breakVideoSource: BreakVideoSource.Builtin,
-  breakVideoPath: '',
-  breakVideoMuted: true,
   endBreakEnabled: true,
   skipBreakEnabled: false,
   postponeBreakEnabled: true,
@@ -157,12 +143,10 @@ export const SOUND_TYPES: SoundType[] = [
   SoundType.Scifi
 ]
 
-export const BREAK_POPUP_STYLES: BreakPopupStyle[] = [BreakPopupStyle.Card, BreakPopupStyle.Video]
-
-export const BUILTIN_BREAK_VIDEO = './videos/calm.mp4'
+export const BREAK_POPUP_STYLES: BreakPopupStyle[] = [BreakPopupStyle.Card]
 
 export function usesFullscreenBreakWindow(settings: Settings): boolean {
-  return settings.breakPopupStyle === BreakPopupStyle.Video || settings.showBackdrop
+  return settings.showBackdrop
 }
 
 /** @deprecated use WORKING_HOURS_DAY_KEYS + i18n day.* keys */

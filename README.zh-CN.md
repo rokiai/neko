@@ -88,7 +88,7 @@ Linux 一般**不会像 macOS Gatekeeper 那样**拦未签名桌面应用；AppI
 
 关闭设置窗口不会退出；托盘 / 菜单栏图标点开可再进设置。彻底退出请用托盘菜单里的「退出」。
 
-优雅的跨平台桌面休息提醒，基于 [electron-vite](https://electron-vite.org/) + React + TypeScript + Ant Design。
+优雅的跨平台桌面休息提醒，基于 Tauri + Rust、React、TypeScript 和 Ant Design。
 
 仓库：[rokiai/neko](https://github.com/rokiai/neko)
 
@@ -113,7 +113,7 @@ Linux 一般**不会像 macOS Gatekeeper 那样**拦未签名桌面应用；AppI
 ## 功能
 
 - 可配置频率 / 时长的休息调度
-- 消息卡片 / 视频弹窗、系统通知
+- 消息卡片弹窗、系统通知
 - 工作时间、Smart Breaks（空闲 / 锁屏重置）
 - 系统托盘（macOS 菜单栏图标；可选菜单栏计时）
 - 音效、外观、登录自启、自动更新检查
@@ -140,13 +140,13 @@ git push origin main --follow-tags
 3. `dry_run=true`：只构建并上传 Artifacts  
    `dry_run=false` 且当前是 tag：会创建 Release
 
-产物示例：`.dmg` / `.zip`（mac）、`-setup.exe`（win）、`.AppImage` / `.deb`（linux），以及供自动更新用的 `latest*.yml`。
+产物包括 `.dmg`（mac）、`-setup.exe`（win）以及 `.AppImage` / `.deb`（linux）。
 
 ## 本地开发
 
 ```bash
 pnpm install
-pnpm dev          # 必须用 Electron 窗口，不要只开浏览器
+pnpm tauri:dev    # 启动 Tauri 桌面壳和 Vite 前端
 ```
 
 ```bash
@@ -154,24 +154,21 @@ pnpm lint && pnpm typecheck && pnpm test
 pnpm build:mac    # 或 build:win / build:linux
 ```
 
-## 自动更新
+## 更新
 
-已接入 `electron-updater`（GitHub Releases）：
-
-- **仅打包后的正式安装包**会检查更新（`pnpm dev` 不会）
-- 发现新版本后会发系统通知；部分平台会后台下载，退出时安装
-- 需 Release 中包含 electron-builder 生成的 `latest.yml` / `latest-mac.yml` 等（Actions 已上传）
-
-macOS 未公证时，自动更新体验可能受限，可手动从 Releases 下载覆盖安装。
+在配置签名密钥和 Tauri updater endpoint 之前，自动更新保持关闭；暂时请从 GitHub Releases 手动安装新版本。
 
 ## 结构
 
 ```
 src/
-  main/       # 调度、托盘、窗口、持久化
-  preload/    # 类型化 IPC
-  renderer/   # 设置 / 休息 / 音效页
+  pages/      # 设置 / 休息页面
+  components/ # 可复用 React 组件
   shared/     # 共享类型、i18n、纯逻辑
+  lib/        # Tauri adapter 与前端服务
+src-tauri/
+  src/        # commands、config、scheduler、monitors、platform
+  resources/  # 内置 WAV 音效
 ```
 
 ## 许可

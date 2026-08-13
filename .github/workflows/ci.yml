@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint · Typecheck · Test · Build
+    name: Lint · Typecheck · Test · Tauri Check · Build
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -28,6 +28,26 @@ jobs:
         with:
           node-version: '22'
           cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.95.0
+          components: rustfmt, clippy
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -47,7 +67,17 @@ jobs:
       - name: Unit tests
         run: pnpm run test
 
-      - name: Build (electron-vite)
+      - name: Rust format check
+        run: pnpm run rust:format:check
+
+      - name: Rust lint
+        run: pnpm run rust:lint
+
+      - name: Rust tests
+        run: pnpm run rust:test
+
+      - name: Tauri check
+        run: pnpm run tauri:check
+
+      - name: Build (Vite)
         run: pnpm run build
-        env:
-          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron

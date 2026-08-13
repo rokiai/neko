@@ -88,7 +88,7 @@ Linux generally does **not** block unsigned desktop apps the way macOS Gatekeepe
 
 Closing the settings window does **not** quit Neko — use the tray / menu-bar icon. Choose **Quit** in the tray menu to exit fully.
 
-Elegant cross-platform desktop break reminders, built with [electron-vite](https://electron-vite.org/) + React + TypeScript + Ant Design.
+Elegant cross-platform desktop break reminders, built with Tauri + Rust and React + TypeScript + Ant Design.
 
 Repo: [rokiai/neko](https://github.com/rokiai/neko)
 
@@ -113,7 +113,7 @@ Repo: [rokiai/neko](https://github.com/rokiai/neko)
 ## Features
 
 - Configurable break schedule (frequency / length)
-- Message-card or video popup, plus system notifications
+- Message-card popup, plus system notifications
 - Working hours and smart idle / lock reset
 - System tray (macOS menu-bar icon; optional menu-bar timer)
 - Sounds, appearance, launch at login, update checks
@@ -145,7 +145,7 @@ Artifacts include platform installers plus `latest*.yml` files used by auto-upda
 
 ```bash
 pnpm install
-pnpm dev          # use the Electron window, not a bare browser URL
+pnpm tauri:dev    # starts the Tauri desktop shell and Vite renderer
 ```
 
 ```bash
@@ -153,24 +153,21 @@ pnpm lint && pnpm typecheck && pnpm test
 pnpm build:mac    # or build:win / build:linux
 ```
 
-## Auto-update
+## Updates
 
-Powered by `electron-updater` against GitHub Releases:
-
-- Checks run only in **packaged** apps (not `pnpm dev`)
-- Users get a system notification when an update is available / downloaded
-- Release assets must include electron-builder’s `latest*.yml` (uploaded by the Action)
-
-Unsigned / unnotarized macOS builds may limit seamless auto-update; manual install from Releases still works.
+Automatic updates are intentionally disabled until signing keys and a Tauri updater endpoint are configured. Installers from GitHub Releases can be updated manually in the meantime.
 
 ## Structure
 
 ```
 src/
-  main/       # scheduler, tray, windows, persistence
-  preload/    # typed IPC
-  renderer/   # settings / break / sounds UI
+  pages/      # settings / break UI
+  components/ # reusable React components
   shared/     # shared types, i18n, pure logic
+  lib/        # Tauri adapter and frontend services
+src-tauri/
+  src/        # commands, config, scheduler, monitors, platform adapters
+  resources/  # bundled WAV notification sounds
 ```
 
 ## License
