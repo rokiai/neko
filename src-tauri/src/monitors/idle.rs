@@ -6,6 +6,10 @@ pub const MAX_DETECTION_FAILURES: u8 = 3;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct IdleStatus {
+    /// True only while the user has interacted recently and the screen is not
+    /// locked. This is independent from `idle`, whose meaning is controlled
+    /// by the optional timer-reset setting.
+    pub work_active: bool,
     pub idle: bool,
     pub locked: bool,
     /// While locked: when the lock began. On the first status after unlocking:
@@ -90,6 +94,7 @@ fn evaluate(
     let locked_long_enough =
         lock_start_state.is_some_and(|start| now_ms.saturating_sub(start) >= threshold_ms);
     IdleStatus {
+        work_active: !locked && !idle_long_enough,
         idle: locked_long_enough || (idle_reset_enabled && idle_long_enough && !locked),
         locked,
         lock_start_at_ms: if locked {
@@ -122,6 +127,7 @@ mod tests {
         assert_eq!(
             after,
             IdleStatus {
+                work_active: true,
                 idle: false,
                 locked: false,
                 lock_start_at_ms: None
@@ -146,6 +152,10 @@ mod tests {
             while_locked.idle,
             "lock beyond threshold counts as idle even with idle reset off"
         );
+        assert!(
+            !while_locked.work_active,
+            "a locked screen is never work time"
+        );
         assert_eq!(while_locked.lock_start_at_ms, Some(0));
 
         let first_unlocked = evaluate(
@@ -157,6 +167,7 @@ mod tests {
             THRESHOLD * 1_000 + 1_000,
         );
         assert!(!first_unlocked.idle);
+        assert!(first_unlocked.work_active, "work resumes after the unlock");
         assert_eq!(
             first_unlocked.lock_start_at_ms,
             Some(0),
@@ -179,8 +190,10 @@ mod tests {
         let mut lock_start = None;
         let disabled = evaluate(&mut lock_start, 900, false, THRESHOLD, false, 0);
         assert!(!disabled.idle);
+        assert!(!disabled.work_active, "long inactivity is not work time");
 
         let enabled = evaluate(&mut lock_start, 900, false, THRESHOLD, true, 0);
         assert!(enabled.idle);
+        assert!(!enabled.work_active);
     }
 }

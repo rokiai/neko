@@ -9,6 +9,9 @@ use crate::monitors::idle::IdleStatus;
 use crate::scheduler::state::SchedulerState;
 
 pub(crate) const STATS_FLUSH_INTERVAL_MS: i64 = 15_000;
+/// Work time is derived from consecutive live ticks. Longer gaps are a sleep,
+/// app suspension, or scheduler stall and must not be credited as work.
+const MAX_ACCOUNTABLE_WORK_GAP_MS: i64 = 5_000;
 
 pub(crate) struct TickInput {
     pub now: i64,
@@ -69,6 +72,10 @@ pub(crate) fn apply(scheduler: &mut SchedulerState, input: &TickInput) -> TickOu
             .or_else(|| (!idle_status.locked).then_some(now - idle_threshold * 1_000));
     }
 
+    let elapsed_since_last_tick_ms = scheduler
+        .last_tick_at_ms
+        .map(|last_tick| now.saturating_sub(last_tick))
+        .unwrap_or(0);
     let seconds_since_last_tick = scheduler
         .last_tick_at_ms
         .map(|last_tick| (now - last_tick).unsigned_abs() as i64 / 1_000)
@@ -114,8 +121,8 @@ pub(crate) fn apply(scheduler: &mut SchedulerState, input: &TickInput) -> TickOu
         outcome.trigger_break = true;
     }
 
-    if breaks_enabled && !scheduler.having_break && !idle {
-        scheduler.pending_work_seconds += 1;
+    if breaks_enabled && in_working_hours && !scheduler.having_break && idle_status.work_active {
+        scheduler.pending_work_seconds += accountable_work_seconds(elapsed_since_last_tick_ms);
         if now - scheduler.last_stats_flush_at_ms >= STATS_FLUSH_INTERVAL_MS {
             outcome.flush_work_seconds = std::mem::take(&mut scheduler.pending_work_seconds);
             scheduler.last_stats_flush_at_ms = now;
@@ -123,6 +130,13 @@ pub(crate) fn apply(scheduler: &mut SchedulerState, input: &TickInput) -> TickOu
     }
     scheduler.last_tick_at_ms = Some(now);
     outcome
+}
+
+fn accountable_work_seconds(elapsed_ms: i64) -> i64 {
+    if !(500..=MAX_ACCOUNTABLE_WORK_GAP_MS).contains(&elapsed_ms) {
+        return 0;
+    }
+    ((elapsed_ms + 500) / 1_000).max(1)
 }
 
 pub(crate) fn clear_active_break_locked(scheduler: &mut SchedulerState) {
@@ -148,7 +162,7 @@ pub(crate) fn schedule_next_locked(scheduler: &mut SchedulerState, now: i64, del
 
 #[cfg(test)]
 mod tests {
-    use super::{STATS_FLUSH_INTERVAL_MS, TickInput, apply};
+    use super::{STATS_FLUSH_INTERVAL_MS, TickInput, accountable_work_seconds, apply};
     use crate::monitors::idle::IdleStatus;
     use crate::scheduler::state::SchedulerState;
 
@@ -168,7 +182,10 @@ mod tests {
     }
 
     fn active() -> IdleStatus {
-        IdleStatus::default()
+        IdleStatus {
+            work_active: true,
+            ..IdleStatus::default()
+        }
     }
 
     #[test]
@@ -181,6 +198,7 @@ mod tests {
             ..SchedulerState::default()
         };
         let locked = IdleStatus {
+            work_active: false,
             idle: false,
             locked: true,
             lock_start_at_ms: Some(100_000),
@@ -207,6 +225,7 @@ mod tests {
         };
         // First status after a 400s lock carries the anchor exactly once.
         let unlocked = IdleStatus {
+            work_active: true,
             idle: false,
             locked: false,
             lock_start_at_ms: Some(0),
@@ -228,6 +247,7 @@ mod tests {
             ..SchedulerState::default()
         };
         let idle_now = IdleStatus {
+            work_active: false,
             idle: true,
             locked: false,
             lock_start_at_ms: None,
@@ -266,10 +286,55 @@ mod tests {
         let mut scheduler = SchedulerState {
             break_time_ms: Some(10_000_000),
             pending_work_seconds: 9,
+            last_tick_at_ms: Some(STATS_FLUSH_INTERVAL_MS - 1_000),
             ..SchedulerState::default()
         };
         let outcome = apply(&mut scheduler, &input(STATS_FLUSH_INTERVAL_MS, active()));
         assert_eq!(outcome.flush_work_seconds, 10);
+        assert_eq!(scheduler.pending_work_seconds, 0);
+    }
+
+    #[test]
+    fn records_only_recent_activity_during_working_hours() {
+        let mut scheduler = SchedulerState {
+            break_time_ms: Some(10_000_000),
+            last_tick_at_ms: Some(1_000),
+            ..SchedulerState::default()
+        };
+        let outcome = apply(&mut scheduler, &input(2_000, active()));
+        assert_eq!(outcome.flush_work_seconds, 0);
+        assert_eq!(scheduler.pending_work_seconds, 1);
+
+        let inactive = IdleStatus {
+            work_active: false,
+            ..IdleStatus::default()
+        };
+        apply(&mut scheduler, &input(3_000, inactive));
+        assert_eq!(scheduler.pending_work_seconds, 1, "idle time is excluded");
+
+        let mut outside_hours = input(4_000, active());
+        outside_hours.in_working_hours = false;
+        apply(&mut scheduler, &outside_hours);
+        assert_eq!(
+            scheduler.pending_work_seconds, 1,
+            "time outside configured hours is excluded"
+        );
+    }
+
+    #[test]
+    fn does_not_backfill_work_after_a_long_tick_gap() {
+        assert_eq!(accountable_work_seconds(999), 1);
+        assert_eq!(accountable_work_seconds(1_500), 2);
+        assert_eq!(accountable_work_seconds(5_000), 5);
+        assert_eq!(accountable_work_seconds(5_001), 0);
+        assert_eq!(accountable_work_seconds(60 * 60 * 1_000), 0);
+
+        let mut scheduler = SchedulerState {
+            break_time_ms: Some(10_000_000),
+            last_tick_at_ms: Some(0),
+            ..SchedulerState::default()
+        };
+        apply(&mut scheduler, &input(60 * 60 * 1_000, active()));
         assert_eq!(scheduler.pending_work_seconds, 0);
     }
 }
