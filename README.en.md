@@ -65,19 +65,6 @@ For an unsigned installer, Windows may show SmartScreen. Choose **More info → 
 | **Localized UI**                | Chinese, English, and Japanese, following the system by default          |
 | **Local data**                  | Preferences and settings stay on your device                             |
 
-## Project structure
-
-```
-src/
-  pages/      # settings / break UI
-  components/ # reusable React components
-  shared/     # shared types, i18n, pure logic
-  lib/        # Tauri adapter and frontend services
-src-tauri/
-  src/        # commands, config, scheduler, monitors, platform adapters
-  resources/  # bundled WAV notification sounds
-```
-
 ## License
 
 [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0)

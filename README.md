@@ -65,19 +65,6 @@ Windows 的未签名安装包可能出现 SmartScreen，选择「更多信息 �
 | **多语言界面**        | 中文、English、日本語，默认跟随系统          |
 | **本地数据**          | 偏好和设置保存在本机，不经过第三方服务       |
 
-## 项目结构
-
-```
-src/
-  pages/      # 设置 / 休息页面
-  components/ # 可复用 React 组件
-  shared/     # 共享类型、i18n、纯逻辑
-  lib/        # Tauri 适配器与前端服务
-src-tauri/
-  src/        # 命令、配置、调度、监测与平台适配
-  resources/  # 内置 WAV 音效
-```
-
 ## 许可
 
 [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0)
