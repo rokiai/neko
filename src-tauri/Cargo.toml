@@ -21,7 +21,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_path_to_error = "0.1"
 sys-locale = "0.3"
-tauri = { version = "2", features = ["tray-icon", "macos-private-api", "image-png"] }
+tauri = { version = "=2.11.5", features = ["tray-icon", "macos-private-api", "image-png"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-log = "2"
 tauri-plugin-notification = "2"
@@ -45,7 +45,7 @@ windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6.4"
-objc2-app-kit = { version = "0.3.2", features = ["NSGraphics", "NSPanel", "NSResponder", "NSWindow"] }
+objc2-app-kit = { version = "0.3.2", features = ["NSBitmapImageRep", "NSButton", "NSGraphics", "NSImage", "NSImageRep", "NSPanel", "NSResponder", "NSStatusItem", "NSWindow"] }
 objc2-foundation = { version = "0.3.2", features = ["NSGeometry", "NSObject"] }
 
 [profile.release]

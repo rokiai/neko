@@ -30,10 +30,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "ci": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run rust:format:check && pnpm run rust:lint && pnpm run rust:test && pnpm run tauri:check && pnpm run build",
-    "sync:readme": "node scripts/sync-readme-download-links.mjs",
-    "sync:readme:check": "node scripts/sync-readme-download-links.mjs --check",
     "release:manifest": "node scripts/write-release-manifest.mjs",
-    "version": "pnpm sync:readme && git add README.md README.zh-CN.md",
     "prepare": "husky"
   },
   "dependencies": {

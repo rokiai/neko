@@ -2,14 +2,12 @@ use tauri::{AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindowBuild
 
 use crate::{config::RuntimeSettings, scheduler, scheduler::state::AppState};
 
-mod dock;
 #[cfg(target_os = "macos")]
 mod macos_spaces;
 mod tray;
 #[cfg(windows)]
 mod windows_desktops;
 
-use dock::{settings_is_visible, sync_macos_dock};
 pub(crate) use tray::refresh_tray_with;
 pub use tray::{init_tray, refresh_tray};
 
@@ -29,7 +27,6 @@ pub fn show_settings<R: Runtime>(app: &AppHandle<R>) {
             let _ = window.show();
         }
         let _ = window.set_focus();
-        sync_macos_dock(app, true);
         // Nothing was pushed while the window was hidden, so seed it now
         // instead of leaving stale numbers on screen until the next tick.
         push_runtime_status(app, app.state::<AppState>().runtime_settings());
@@ -55,11 +52,16 @@ pub(crate) fn push_runtime_status<R: Runtime>(app: &AppHandle<R>, settings: Runt
     }
 }
 
+fn settings_is_visible<R: Runtime>(app: &AppHandle<R>) -> bool {
+    app.get_webview_window("settings")
+        .and_then(|window| window.is_visible().ok())
+        .unwrap_or(false)
+}
+
 pub fn hide_settings<R: Runtime>(app: &AppHandle<R>) {
     if let Some(window) = app.get_webview_window("settings") {
         let _ = window.hide();
     }
-    sync_macos_dock(app, false);
 }
 
 pub fn init_settings_lifecycle<R: Runtime>(app: &AppHandle<R>) {
@@ -67,13 +69,11 @@ pub fn init_settings_lifecycle<R: Runtime>(app: &AppHandle<R>) {
         return;
     };
     let app_handle = app.clone();
-    window.on_window_event(move |event| match event {
-        WindowEvent::CloseRequested { api, .. } => {
+    window.on_window_event(move |event| {
+        if let WindowEvent::CloseRequested { api, .. } = event {
             api.prevent_close();
             hide_settings(&app_handle);
         }
-        WindowEvent::Destroyed => sync_macos_dock(&app_handle, false),
-        _ => {}
     });
 }
 
@@ -170,10 +170,6 @@ pub fn create_break_windows<R: Runtime>(app: &AppHandle<R>) -> Result<(), String
     }
 
     state.scheduler.lock().break_window_labels = labels;
-    // Keep Dock/activation policy aligned with Settings visibility. Forcing
-    // Accessory during preview (Settings still open) steals focus and can jump
-    // the user to another Space/display.
-    sync_macos_dock(app, settings_is_visible(app));
     Ok(())
 }
 
@@ -305,7 +301,6 @@ pub fn close_break_windows<R: Runtime>(app: &AppHandle<R>) {
     {
         let _ = app.run_on_main_thread(macos_spaces::release_all_space_anchors);
     }
-    sync_macos_dock(app, settings_is_visible(app));
 }
 
 fn destroy_windows<R: Runtime>(app: &AppHandle<R>, labels: &[String]) {

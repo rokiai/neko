@@ -59,9 +59,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check README download links
-        run: pnpm sync:readme:check
-
       - name: Format check
         run: pnpm run format:check
 

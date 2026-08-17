@@ -64,7 +64,6 @@ pub fn run() {
             platform::init_settings_lifecycle(app.handle());
             let _tray = platform::init_tray(app.handle())?;
             scheduler::init(app.handle());
-            platform::show_settings(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -93,8 +92,7 @@ pub fn run() {
         .expect("error while building Neko Tauri application");
 
     app.run(|_app_handle, _event| {
-        // Dock icon click while the Settings window is minimized/hidden must
-        // bring Settings back (parity with Electron's `activate` handler).
+        // Reopening this menu-bar app restores the hidden Settings window.
         #[cfg(target_os = "macos")]
         if let tauri::RunEvent::Reopen { .. } = _event {
             platform::show_settings(_app_handle);

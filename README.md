@@ -1,179 +1,87 @@
-# Neko
-
 <p align="center">
-  <img src="./resources/icon.png" alt="Neko" width="160" />
+  <img src="./resources/icon.png" width="112" alt="Neko" />
 </p>
 
-<p align="center">
-  <strong>Elegant break reminders for desktop</strong><br />
-  macOS · Windows · Linux
-</p>
+<h1 align="center">Neko</h1>
+
+<p align="center"><strong>中文</strong> · <a href="./README.en.md">English</a></p>
+
+<p align="center"><strong>优雅的桌面休息提醒</strong> — 适用于 macOS、Windows 和 Linux。</p>
+
+<p align="center">定时休息、智能重置与专注提醒；设置和数据均保存在本地。</p>
+
+## 截图
+
+### 休息与今日状态
+
+休息节奏、稍后提醒选项，以及当天完成情况一目了然。
 
 <p align="center">
-  <a href="./README.zh-CN.md">中文</a> ·
-  <a href="https://github.com/rokiai/neko/releases/latest">Download</a> ·
-  <a href="https://github.com/rokiai/neko/releases">Releases</a> ·
-  <a href="./CHANGELOG.md">Changelog</a>
+  <img src="./docs/screenshot/1.png" width="880" alt="Neko 休息设置与今日状态" />
 </p>
 
-<!-- DOWNLOAD_LINKS:START -->
+### 外观与休息预览
 
-## Download
+在设置中调整外观，并即时查看休息弹窗效果。
 
-**Current release: [v0.1.3](https://github.com/rokiai/neko/releases/latest)**
+<p align="center">
+  <img src="./docs/screenshot/2.png" width="880" alt="Neko 外观设置与休息预览" />
+</p>
 
-| Platform                  | Installer                                                                                            |
-| ------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **macOS (Apple Silicon)** | [Neko-0.1.3-arm64.dmg](https://github.com/rokiai/neko/releases/download/v0.1.3/Neko-0.1.3-arm64.dmg) |
-| **macOS (Intel)**         | [Neko-0.1.3-x64.dmg](https://github.com/rokiai/neko/releases/download/v0.1.3/Neko-0.1.3-x64.dmg)     |
-| **Windows**               | [Neko-0.1.3-setup.exe](https://github.com/rokiai/neko/releases/download/v0.1.3/Neko-0.1.3-setup.exe) |
-| **Linux (AppImage)**      | [Neko-0.1.3.AppImage](https://github.com/rokiai/neko/releases/download/v0.1.3/Neko-0.1.3.AppImage)   |
-| **Linux (deb)**           | [neko_0.1.3_amd64.deb](https://github.com/rokiai/neko/releases/download/v0.1.3/neko_0.1.3_amd64.deb) |
+## 下载安装
 
-All releases: [https://github.com/rokiai/neko/releases/latest](https://github.com/rokiai/neko/releases/latest)
+从 [夸克网盘下载 Neko 安装包](https://pan.quark.cn/s/223657edd23b)，按你的系统选择对应文件。
 
-> Links are generated from `package.json` version via `pnpm sync:readme`. Re-run after bumping the version (also runs on `pnpm version`).
+| 平台    | 安装方式                                         |
+| ------- | ------------------------------------------------ |
+| macOS   | 打开对应芯片的 DMG，将 **Neko** 拖入「应用程序」 |
+| Windows | 运行安装程序，随后从开始菜单或桌面快捷方式启动   |
+| Linux   | AppImage 添加执行权限后运行，或安装 `.deb` 包    |
 
-<!-- DOWNLOAD_LINKS:END -->
+### macOS 无法打开时
 
-## Install guide
-
-Neko is **not notarized with an Apple Developer ID** yet. That is normal for this release; follow the steps below.
-
-### macOS
-
-1. Download the matching DMG (`arm64` for Apple Silicon, `x64` for Intel).
-2. Open the DMG and drag **Neko** into **Applications**.
-3. Open **Neko** from Applications.
-
-#### If macOS says the app is damaged (“已损坏，无法打开”)
-
-This is **Gatekeeper quarantine**, not a corrupt download. System Settings will **not** show **Open Anyway** for this message.
-
-In Terminal:
+当前安装包尚未完成 Apple 开发者签名和公证。若提示「已损坏，无法打开」，在终端执行：
 
 ```bash
 xattr -cr /Applications/Neko.app
 open /Applications/Neko.app
 ```
 
-Then look for the cup icon in the **menu bar** (Neko is a menu-bar app and often has **no Dock icon**).
+若提示「无法验证开发者」，可右键应用后选择「打开」，或在「系统设置 → 隐私与安全性」中选择「仍要打开」。启动后请在菜单栏右侧查找 Neko 图标；它不会显示在 Dock 中。
 
-#### If macOS says the developer cannot be verified (“无法验证开发者”)
+### Windows 与 Linux 提示
 
-You may either:
+Windows 的未签名安装包可能出现 SmartScreen，选择「更多信息 → 仍要运行」即可。Linux 的 AppImage 需要先执行 `chmod +x Neko-*.AppImage`；`.deb` 包可使用 `sudo dpkg -i neko_*_amd64.deb` 安装。
 
-- Right-click the app → **Open** → **Open**, or
-- Dismiss the dialog, then within about an hour: **System Settings → Privacy & Security → Security → Open Anyway**.
+## 功能
 
-The Terminal `xattr` command above also works for this case.
+| 功能                  | 说明                                         |
+| --------------------- | -------------------------------------------- |
+| **可配置的休息节奏**  | 自定义休息频率、时长和提醒方式               |
+| **休息提示**          | 消息卡片弹窗与系统通知配合提醒               |
+| **智能重置**          | 根据工作时间、空闲和锁屏状态调整计时         |
+| **菜单栏 / 系统托盘** | 从顶部菜单栏或系统托盘快速查看状态、打开设置 |
+| **个性化体验**        | 音效、外观、登录自启和更新检查均可设置       |
+| **多语言界面**        | 中文、English、日本語，默认跟随系统          |
+| **本地数据**          | 偏好和设置保存在本机，不经过第三方服务       |
 
-### Windows
-
-1. Download `Neko-*-setup.exe` and run the installer.
-2. If **SmartScreen** shows “Windows protected your PC” (unsigned installer):
-   - Click **More info** → **Run anyway**.
-3. Launch Neko from the Start menu / desktop shortcut; it appears in the **system tray**.
-
-Windows does **not** use the macOS-style “app is damaged” quarantine message. SmartScreen is the usual prompt for unsigned builds.
-
-### Linux
-
-1. **AppImage**: `chmod +x Neko-*.AppImage && ./Neko-*.AppImage`
-2. **deb**: `sudo dpkg -i neko_*_amd64.deb` (fix deps with `sudo apt -f install` if needed)
-
-Linux generally does **not** block unsigned desktop apps the way macOS Gatekeeper does. You mainly need execute permission (AppImage) or package install rights (deb).
-
-### After install (all platforms)
-
-Closing the settings window does **not** quit Neko — use the tray / menu-bar icon. Choose **Quit** in the tray menu to exit fully.
-
-Elegant cross-platform desktop break reminders, built with Tauri + Rust and React + TypeScript + Ant Design.
-
-Repo: [rokiai/neko](https://github.com/rokiai/neko)
-
-## Screenshots
-
-<p align="center">
-  <img src="./docs/screenshot/1.png" alt="Neko settings — breaks" width="720" />
-</p>
-
-<p align="center">
-  <em>Break schedule, snooze options, and today’s status</em>
-</p>
-
-<p align="center">
-  <img src="./docs/screenshot/2.png" alt="Neko settings — appearance with break preview" width="720" />
-</p>
-
-<p align="center">
-  <em>Appearance settings with live break popup preview</em>
-</p>
-
-## Features
-
-- Configurable break schedule (frequency / length)
-- Message-card popup, plus system notifications
-- Working hours and smart idle / lock reset
-- System tray (macOS menu-bar icon; optional menu-bar timer)
-- Sounds, appearance, launch at login, update checks
-- Locales: Chinese / English / Japanese (follows system by default)
-
-## Build installers for three platforms with GitHub Actions
-
-[`.github/workflows/release.yml`](.github/workflows/release.yml) already builds **macOS, Windows, and Linux** desktop packages (not Android).
-
-**Option A — tag release**
-
-```bash
-# bump version (also refreshes README download links)
-pnpm version patch   # or minor / major / 0.2.0
-git push origin main --follow-tags
-```
-
-Pushing a `v*` tag builds all platforms and publishes a GitHub Release. If you tag manually, run `pnpm sync:readme` after changing `package.json` version.
-
-**Option B — manual run**
-
-1. GitHub → **Actions** → **Release** → **Run workflow**
-2. `dry_run=true`: build artifacts only  
-   `dry_run=false` on a tag: also publish a Release
-
-Artifacts include platform installers plus `latest*.yml` files used by auto-update.
-
-## Development
-
-```bash
-pnpm install
-pnpm tauri:dev    # starts the Tauri desktop shell and Vite renderer
-```
-
-```bash
-pnpm lint && pnpm typecheck && pnpm test
-pnpm build:mac    # or build:win / build:linux
-```
-
-## Updates
-
-Automatic updates are intentionally disabled until signing keys and a Tauri updater endpoint are configured. Installers from GitHub Releases can be updated manually in the meantime.
-
-## Structure
+## 项目结构
 
 ```
 src/
-  pages/      # settings / break UI
-  components/ # reusable React components
-  shared/     # shared types, i18n, pure logic
-  lib/        # Tauri adapter and frontend services
+  pages/      # 设置 / 休息页面
+  components/ # 可复用 React 组件
+  shared/     # 共享类型、i18n、纯逻辑
+  lib/        # Tauri 适配器与前端服务
 src-tauri/
-  src/        # commands, config, scheduler, monitors, platform adapters
-  resources/  # bundled WAV notification sounds
+  src/        # 命令、配置、调度、监测与平台适配
+  resources/  # 内置 WAV 音效
 ```
 
-## License
+## 许可
 
 [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0)
 
 Required Notice: Copyright (c) 2026 MultCat Authors
 
-See [`LICENSE`](./LICENSE) in the repository root.
+详见仓库根目录 [`LICENSE`](./LICENSE)。

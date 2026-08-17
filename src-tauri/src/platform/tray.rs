@@ -20,8 +20,22 @@ use crate::{
     platform::show_settings,
     scheduler::{self, RuntimeStatus, state::AppState},
 };
+#[cfg(target_os = "macos")]
+use objc2::AllocAnyThread;
+#[cfg(target_os = "macos")]
+use objc2_app_kit::{NSBitmapImageRep, NSImage};
+#[cfg(target_os = "macos")]
+use objc2_foundation::{MainThreadMarker, NSData, NSSize};
 
 const TRAY_ID: &str = "neko-tray";
+#[cfg(target_os = "macos")]
+const MACOS_TRAY_ICON_POINTS: f64 = 22.0;
+#[cfg(target_os = "macos")]
+const MACOS_TRAY_ICON_REPRESENTATIONS: [&[u8]; 3] = [
+    include_bytes!("../../icons/tray-template.png"),
+    include_bytes!("../../icons/tray-template@2x.png"),
+    include_bytes!("../../icons/tray-template@3x.png"),
+];
 
 /// Rendered content of the menu currently installed on the tray.
 static MENU_SIGNATURE: Mutex<String> = Mutex::new(String::new());
@@ -74,9 +88,12 @@ pub fn init_tray<R: Runtime>(app: &AppHandle<R>) -> Result<TrayIcon<R>, String> 
                 .clone(),
         );
     }
-    builder
+    let tray = builder
         .build(app)
-        .map_err(|error| format!("create tray: {error}"))
+        .map_err(|error| format!("create tray: {error}"))?;
+    #[cfg(target_os = "macos")]
+    configure_macos_status_icon(&tray)?;
+    Ok(tray)
 }
 
 /// Refreshes from a freshly projected snapshot. For cold paths (break
@@ -125,8 +142,36 @@ pub(crate) fn refresh_tray_with<R: Runtime>(app: &AppHandle<R>, settings: Runtim
 
 #[cfg(target_os = "macos")]
 fn macos_template_icon() -> Result<tauri::image::Image<'static>, String> {
-    tauri::image::Image::from_bytes(include_bytes!("../../icons/tray-template.png"))
+    tauri::image::Image::from_bytes(include_bytes!("../../icons/tray-template@2x.png"))
         .map_err(|error| format!("decode tray template icon: {error}"))
+}
+
+#[cfg(target_os = "macos")]
+fn configure_macos_status_icon<R: Runtime>(tray: &TrayIcon<R>) -> Result<(), String> {
+    tray.with_inner_tray_icon(|inner| {
+        let status_item = inner
+            .ns_status_item()
+            .ok_or("macOS status item is unavailable")?;
+        let marker = MainThreadMarker::new().ok_or("not on the macOS main thread")?;
+        let button = status_item
+            .button(marker)
+            .ok_or("macOS status item has no button")?;
+        let size = NSSize::new(MACOS_TRAY_ICON_POINTS, MACOS_TRAY_ICON_POINTS);
+        let image = NSImage::initWithSize(NSImage::alloc(), size);
+
+        for bytes in MACOS_TRAY_ICON_REPRESENTATIONS {
+            let data = NSData::from_vec(bytes.to_vec());
+            let representation = NSBitmapImageRep::imageRepWithData(&data)
+                .ok_or("decode macOS tray icon representation")?;
+            representation.setSize(size);
+            image.addRepresentation(&representation);
+        }
+
+        image.setTemplate(true);
+        button.setImage(Some(&image));
+        Ok::<_, String>(())
+    })
+    .map_err(|error| format!("configure macOS tray icon: {error}"))?
 }
 
 struct TraySnapshot {

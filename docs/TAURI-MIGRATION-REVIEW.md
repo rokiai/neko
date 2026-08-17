@@ -54,15 +54,15 @@
 - **修复记录**：新增 `core/i18n.rs`——与 `src/shared/i18n/{en,zh,ja}.ts` 同源的最小词表（托盘全部文案、空闲重置通知、Break 默认标题/正文），`settings.locale=system` 时经 `sys-locale` 探测系统语言。托盘补回 About 项（同"设置"打开设置窗）与 `tray.disabledLeft`（"已关闭 · 剩余 {time}"）。通知模式 Break 的标题/正文兜底与空闲重置通知全部走词表。
 - 验收方式：切换 locale 后重建菜单即生效（菜单签名包含 locale）；文案与前端词条一致（zh 的托盘词条按前端 `zh.ts` 逐条对照）。
 
-### N4 [中] macOS Dock 点击无法恢复设置窗口（Reopen 未处理） — [x]
+### N4 [中] macOS 重新打开应用无法恢复设置窗口（Reopen 未处理） — [x]
 
 - 位置（评审时）：`lib.rs` `.run(ctx)` 不处理运行事件。
 - **修复记录**：`lib.rs` 改为 `.build(ctx)` + `app.run(closure)`，macOS 下 `RunEvent::Reopen` 调 `platform::show_settings`（已确认 tauri 2.11.5 中该变体为 macOS-only cfg，match 臂带 `#[cfg]`）。
-- 待手测：最小化设置 → 点 Dock 图标恢复；隐藏设置（Accessory）与退出行为不变。
+- 待手测：重新打开应用时恢复设置页；隐藏设置与退出行为不变。
 
 ### N5 [中] macOS 菜单栏图标不是 template image — [x]
 
-- **修复记录**：`scripts/make-tray-template.py` 生成 Neko 猫形 template 图标（36×36 = 18pt@2x，黑 glyph + alpha）至 `src-tauri/icons/tray-template.png`，macOS 托盘经 `Image::from_bytes`（tauri `image-png` feature）加载并 `icon_as_template(true)`；Windows/Linux 继续用彩色应用图标。
+- **修复记录**：`scripts/make-tray-template.py` 裁切提供的菜单栏图标源文件的透明边界后，放大为 template 图标（44×44 = 22pt@2x，黑 glyph + alpha）至 `src-tauri/icons/tray-template.png`，macOS 托盘经 `Image::from_bytes`（tauri `image-png` feature）加载并 `icon_as_template(true)`；Windows/Linux 继续用彩色应用图标。
 - 待手测：深/浅色菜单栏观感。
 
 ### N6 [中] 每秒全量重建托盘菜单 — [x]
@@ -84,7 +84,7 @@
 
 - **修复记录**：全部拆分并低于 350 行硬限：
   - `scheduler.rs` 201（API/状态查询）、`scheduler/breaks.rs` 258（休息生命周期）、`scheduler/tick.rs` 170（tick + 触发 + 通知）、`scheduler/transitions.rs` 275（**纯状态转移 + 5 个单测**：短锁屏保持、长锁屏单次重置、idle 期间到期补弹一次、睡眠间隙重排、工作秒数冲刷）、`scheduler/util.rs` 84、`state.rs` 206。
-  - `platform/mod.rs` 342（窗口）、`platform/tray.rs` 337、`platform/dock.rs` 24。
+  - `platform/mod.rs`（窗口）、`platform/tray.rs`。
   - 顺带 `config.rs` 290 + `config/persist.rs`（文件 IO/旧路径）+ `config/schema.rs`（原 391 行超限）。
 - `transitions::apply` 不依赖 `AppHandle`/时钟/OS 探测，逐行保序自原 tick，行为无意变化。
 
@@ -136,15 +136,15 @@
 
 ## 遗留事项（修复后仍开放）
 
-| 事项                  | 来源         | 说明                                                                                                                                                |
-| --------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Windows 真机验收      | N2/N8/§16.3  | WTS 锁屏链路、虚拟桌面跟随、多屏 Break；CI check 只保证编译                                                                                         |
-| Linux 真机验收        | §16.3        | X11/Wayland 透明遮罩、appindicator 托盘、菜单签名重建行为                                                                                           |
-| Linux 锁屏检测        | N2           | 基线即缺；如需补齐走 D-Bus（freedesktop/GNOME/login1）三探测，属新能力而非修复                                                                      |
-| CI 三平台首跑         | N8/N15/N16   | 下次 push 确认 ubuntu quality（apt 依赖修复后首次能走完 clippy）与 platform-check 矩阵；当前按指示暂不跟首跑                                        |
-| macOS 手测一轮        | N3–N6/N12    | 托盘三语菜单与 template 图标观感、Dock 点击恢复、Break 全流程（capabilities 收敛后 event listen 走 core:default，dev 冒烟启动正常，弹出流程待点验） |
-| Notification 模式手测 | 文档阶段 D   | 无 Break 窗、声音、统计一次性验收                                                                                                                   |
-| updater 接入          | 文档阶段 D/E | 未配置 endpoint，生产自动更新保持关闭                                                                                                               |
+| 事项                  | 来源         | 说明                                                                                                                                                 |
+| --------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Windows 真机验收      | N2/N8/§16.3  | WTS 锁屏链路、虚拟桌面跟随、多屏 Break；CI check 只保证编译                                                                                          |
+| Linux 真机验收        | §16.3        | X11/Wayland 透明遮罩、appindicator 托盘、菜单签名重建行为                                                                                            |
+| Linux 锁屏检测        | N2           | 基线即缺；如需补齐走 D-Bus（freedesktop/GNOME/login1）三探测，属新能力而非修复                                                                       |
+| CI 三平台首跑         | N8/N15/N16   | 下次 push 确认 ubuntu quality（apt 依赖修复后首次能走完 clippy）与 platform-check 矩阵；当前按指示暂不跟首跑                                         |
+| macOS 手测一轮        | N3–N6/N12    | 托盘三语菜单与 template 图标观感、菜单栏打开设置、Break 全流程（capabilities 收敛后 event listen 走 core:default，dev 冒烟启动正常，弹出流程待点验） |
+| Notification 模式手测 | 文档阶段 D   | 无 Break 窗、声音、统计一次性验收                                                                                                                    |
+| updater 接入          | 文档阶段 D/E | 未配置 endpoint，生产自动更新保持关闭                                                                                                                |
 
 ## 已确认无需处理（勿当作问题反复触碰）
 
