@@ -27,11 +27,12 @@ html:has(.break-root) #root {
   place-items: center;
 }
 
+/* Dim only — no backdrop-filter. A display-sized filtered compositor layer
+   would sit there for the whole break, once per monitor. */
 .break-backdrop {
   position: absolute;
   inset: 0;
   background: rgba(8, 12, 10, var(--break-backdrop-alpha, 0.72));
-  backdrop-filter: blur(10px);
   transition: background 160ms ease;
 }
 

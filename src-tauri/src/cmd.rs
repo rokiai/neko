@@ -38,6 +38,7 @@ pub(crate) fn play_sound<R: Runtime>(
     phase: &str,
 ) -> Result<(), String> {
     if sound_type == "NONE" {
+        state.audio.lock().close_device();
         return Ok(());
     }
     let path = sound_resource_path(app, &sound_type, phase)?;
@@ -67,6 +68,9 @@ pub fn settings_set(
         config.settings = settings.clone();
     }
     state.save_config().map_err(|error| error.to_string())?;
+    if settings.get("soundType").and_then(Value::as_str) == Some("NONE") {
+        state.audio.lock().close_device();
+    }
     if !cfg!(debug_assertions) {
         let auto_launch = settings
             .get("autoLaunch")

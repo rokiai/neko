@@ -26,6 +26,8 @@ pub fn run() {
                         file_name: Some("neko".into()),
                     }),
                 ])
+                .max_file_size(1_048_576)
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepSome(3))
                 .level(log::LevelFilter::Info)
                 .level_for("tao", log::LevelFilter::Warn)
                 .level_for("wry", log::LevelFilter::Warn)

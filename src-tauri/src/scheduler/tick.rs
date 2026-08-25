@@ -1,13 +1,14 @@
 //! The 1-second scheduler tick and break triggering (popup or notification).
 
 use serde_json::Value;
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Emitter, Manager, Runtime};
 use tauri_plugin_notification::NotificationExt;
 
 use crate::{
     cmd,
     config::{bool_at, integer_at},
     core::i18n,
+    monitors::idle::IdleStatus,
     platform,
     scheduler::state::AppState,
     scheduler::transitions::{self, TickInput, clear_active_break_locked, schedule_next_locked},
@@ -20,13 +21,18 @@ pub(crate) fn tick<R: Runtime>(app: &AppHandle<R>) {
     let state = app.state::<AppState>();
     let settings = state.runtime_settings();
 
-    // The OS idle/lock probes run before the scheduler lock is taken so a slow
-    // syscall cannot stall IPC commands that need the same lock.
-    let idle_status = state.idle.lock().read_status(
-        settings.idle_reset_length_seconds,
-        settings.idle_reset_enabled,
-        now,
-    );
+    // Idle/lock syscalls are only meaningful while the schedule can run. A
+    // disabled timer still needs the 1 Hz loop for disable-until expiry and
+    // tray text, but not IOKit / CGSession on every tick.
+    let idle_status = if settings.breaks_enabled {
+        state.idle.lock().read_status(
+            settings.idle_reset_length_seconds,
+            settings.idle_reset_enabled,
+            now,
+        )
+    } else {
+        IdleStatus::default()
+    };
 
     let (outcome, having_break) = {
         let mut scheduler = state.scheduler.lock();
@@ -103,6 +109,13 @@ pub(crate) fn trigger_break<R: Runtime>(app: &AppHandle<R>) {
         let mut scheduler = state.scheduler.lock();
         clear_active_break_locked(&mut scheduler);
         schedule_next_locked(&mut scheduler, now_ms(), frequency);
+        platform::refresh_tray(app);
+        return;
+    }
+    // begin_popup_break may have emitted before any WebView existed. Broadcast
+    // again now so secondary displays that already subscribed can skip polling.
+    if let Some(end_at) = super::active_break_end_time(app) {
+        let _ = app.emit("neko://break/start", end_at);
     }
     platform::refresh_tray(app);
 }

@@ -14,6 +14,7 @@ import { TAB_META, type SettingsTab } from './tab-meta'
 import { TodayPanel } from './TodayPanel'
 import { useAutoLaunchOnboarding } from './use-auto-launch-onboarding'
 import { useSettingsDraft } from './use-settings-draft'
+import { RuntimeStatusProvider } from './use-runtime-status'
 import './settings.css'
 
 const AUTO_LAUNCH_HIGHLIGHT_MS = 3200
@@ -72,114 +73,116 @@ export function SettingsPage({
   }
 
   return (
-    <div className="settings-shell">
-      <aside className="settings-sidebar">
-        <div className="settings-brand-block">
-          <h1>{t('app.name')}</h1>
-          <p>{t('app.taglineShort')}</p>
+    <RuntimeStatusProvider>
+      <div className="settings-shell">
+        <aside className="settings-sidebar">
+          <div className="settings-brand-block">
+            <h1>{t('app.name')}</h1>
+            <p>{t('app.taglineShort')}</p>
+          </div>
+
+          <nav className="settings-nav" role="tablist" aria-label="Settings">
+            {TAB_META.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                role="tab"
+                aria-selected={tab === item.key}
+                className={`settings-nav-item ${tab === item.key ? 'is-active' : ''}`}
+                onClick={() => switchTab(item.key)}
+              >
+                <span className="settings-nav-icon">{item.icon}</span>
+                {t(item.labelKey as 'settings.tab.breaks')}
+              </button>
+            ))}
+          </nav>
+
+          <div className="settings-sidebar-foot">
+            <img className="settings-mascot" src={mascotSrc} alt="" />
+            <SidebarStatus />
+          </div>
+        </aside>
+
+        <div className={`settings-main ${dirty ? 'is-editing' : ''}`}>
+          <div className="settings-main-head">
+            <h2>{t(activeMeta.labelKey as 'settings.tab.breaks')}</h2>
+            <p>{t(activeMeta.descKey as 'settings.tab.breaksDesc')}</p>
+          </div>
+
+          <div className="settings-main-scroll">
+            {visitedTabs.has('break') && (
+              <div
+                className="settings-tab-panel"
+                role="tabpanel"
+                hidden={tab !== 'break'}
+                aria-hidden={tab !== 'break'}
+              >
+                <BreakTab draft={draft} patch={patch} />
+              </div>
+            )}
+
+            {visitedTabs.has('hours') && (
+              <div
+                className="settings-tab-panel"
+                role="tabpanel"
+                hidden={tab !== 'hours'}
+                aria-hidden={tab !== 'hours'}
+              >
+                <HoursTab draft={draft} patch={patch} />
+              </div>
+            )}
+
+            {visitedTabs.has('look') && (
+              <div
+                className="settings-tab-panel"
+                role="tabpanel"
+                hidden={tab !== 'look'}
+                aria-hidden={tab !== 'look'}
+              >
+                <LookTab draft={draft} patch={patch} />
+              </div>
+            )}
+
+            {visitedTabs.has('system') && (
+              <div
+                className="settings-tab-panel"
+                role="tabpanel"
+                hidden={tab !== 'system'}
+                aria-hidden={tab !== 'system'}
+              >
+                <SystemTab
+                  draft={draft}
+                  patch={patch}
+                  platform={platform}
+                  highlightAutoLaunch={highlightAutoLaunch}
+                />
+              </div>
+            )}
+          </div>
+
+          {dirty && (
+            <footer className="settings-footer">
+              <span className="settings-version">
+                {appVersion ? t('settings.version', { version: appVersion }) : null}
+              </span>
+              <div className="settings-footer-actions">
+                <Button onClick={reset}>{t('common.discard')}</Button>
+                <Button type="primary" onClick={() => void save()}>
+                  {t('common.save')}
+                </Button>
+              </div>
+            </footer>
+          )}
         </div>
 
-        <nav className="settings-nav" role="tablist" aria-label="Settings">
-          {TAB_META.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              role="tab"
-              aria-selected={tab === item.key}
-              className={`settings-nav-item ${tab === item.key ? 'is-active' : ''}`}
-              onClick={() => switchTab(item.key)}
-            >
-              <span className="settings-nav-icon">{item.icon}</span>
-              {t(item.labelKey as 'settings.tab.breaks')}
-            </button>
-          ))}
-        </nav>
+        <TodayPanel />
 
-        <div className="settings-sidebar-foot">
-          <img className="settings-mascot" src={mascotSrc} alt="" />
-          <SidebarStatus />
-        </div>
-      </aside>
-
-      <div className={`settings-main ${dirty ? 'is-editing' : ''}`}>
-        <div className="settings-main-head">
-          <h2>{t(activeMeta.labelKey as 'settings.tab.breaks')}</h2>
-          <p>{t(activeMeta.descKey as 'settings.tab.breaksDesc')}</p>
-        </div>
-
-        <div className="settings-main-scroll">
-          {visitedTabs.has('break') && (
-            <div
-              className="settings-tab-panel"
-              role="tabpanel"
-              hidden={tab !== 'break'}
-              aria-hidden={tab !== 'break'}
-            >
-              <BreakTab draft={draft} patch={patch} />
-            </div>
-          )}
-
-          {visitedTabs.has('hours') && (
-            <div
-              className="settings-tab-panel"
-              role="tabpanel"
-              hidden={tab !== 'hours'}
-              aria-hidden={tab !== 'hours'}
-            >
-              <HoursTab draft={draft} patch={patch} />
-            </div>
-          )}
-
-          {visitedTabs.has('look') && (
-            <div
-              className="settings-tab-panel"
-              role="tabpanel"
-              hidden={tab !== 'look'}
-              aria-hidden={tab !== 'look'}
-            >
-              <LookTab draft={draft} patch={patch} />
-            </div>
-          )}
-
-          {visitedTabs.has('system') && (
-            <div
-              className="settings-tab-panel"
-              role="tabpanel"
-              hidden={tab !== 'system'}
-              aria-hidden={tab !== 'system'}
-            >
-              <SystemTab
-                draft={draft}
-                patch={patch}
-                platform={platform}
-                highlightAutoLaunch={highlightAutoLaunch}
-              />
-            </div>
-          )}
-        </div>
-
-        {dirty && (
-          <footer className="settings-footer">
-            <span className="settings-version">
-              {appVersion ? t('settings.version', { version: appVersion }) : null}
-            </span>
-            <div className="settings-footer-actions">
-              <Button onClick={reset}>{t('common.discard')}</Button>
-              <Button type="primary" onClick={() => void save()}>
-                {t('common.save')}
-              </Button>
-            </div>
-          </footer>
-        )}
+        <AutoLaunchOnboarding
+          open={onboarding.open}
+          onEnable={handleEnableAutoLaunch}
+          onSkip={onboarding.dismiss}
+        />
       </div>
-
-      <TodayPanel />
-
-      <AutoLaunchOnboarding
-        open={onboarding.open}
-        onEnable={handleEnableAutoLaunch}
-        onSkip={onboarding.dismiss}
-      />
-    </div>
+    </RuntimeStatusProvider>
   )
 }

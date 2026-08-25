@@ -170,7 +170,14 @@ pub fn release_all_space_anchors() {
     }
     let mut anchors = SPACE_ANCHORS.lock();
     for (_, panel) in anchors.drain() {
+        // NSPanel defaults to releasedWhenClosed=false (create matches that so
+        // we can keep the Retained). Hand ownership back to AppKit on close so
+        // the 1×1 offscreen anchor does not survive the Break window.
+        unsafe {
+            panel.0.setReleasedWhenClosed(true);
+        }
         panel.0.orderOut(None);
         panel.0.close();
+        std::mem::forget(panel);
     }
 }

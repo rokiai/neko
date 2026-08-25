@@ -57,4 +57,10 @@ impl AudioPlayer {
         device.player.append(source);
         Ok(())
     }
+
+    /// Drops the output stream. The next `play` reopens it. Does not clear
+    /// `unavailable`: a machine that failed to open should not retry forever.
+    pub fn close_device(&mut self) {
+        self.device = None;
+    }
 }
